@@ -73,6 +73,30 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
         shizukuManager.requestPermission()
     }
 
+    fun launchShizuku(): Boolean {
+        log("Opening Shizuku application...")
+        val opened = shizukuManager.launchShizukuApp()
+        if (!opened) {
+            log("Could not find Shizuku app. Make sure Shizuku is installed from Google Play or GitHub.", isError = true)
+        }
+        return opened
+    }
+
+    fun testShizukuPrivilege() {
+        viewModelScope.launch {
+            _isBusy.value = true
+            log("Running live privilege verification test (id & system properties)...")
+            val res = shizukuManager.runDiagnosticTest()
+            if (res.isSuccess) {
+                log("✓ Privilege Verification Succeeded!\n${res.output}")
+            } else {
+                log("Privilege Test Failed (Code ${res.exitCode}): ${res.error.ifBlank { res.output }}", isError = true)
+            }
+            shizukuManager.checkStatus()
+            _isBusy.value = false
+        }
+    }
+
     fun refreshAll() {
         shizukuManager.checkStatus()
         settingsManager.refreshStatus()

@@ -96,7 +96,9 @@ fun ShizukuDashboardTab(
             ShizukuStatusCard(
                 state = shizukuState,
                 onRequestPermission = { viewModel.requestShizukuPermission() },
-                onRefresh = { viewModel.refreshAll() }
+                onRefresh = { viewModel.refreshAll() },
+                onOpenShizuku = { viewModel.launchShizuku() },
+                onTestPrivilege = { viewModel.testShizukuPrivilege() }
             )
         }
 
@@ -257,22 +259,22 @@ fun ShizukuDashboardTab(
                             GuideStep(
                                 number = "1",
                                 title = "Enable Developer Options & Wireless Debugging",
-                                detail = "Go to Android Settings > About Phone > Tap 'Build Number' 7 times. Then navigate to Developer Options and toggle 'Wireless Debugging' ON."
+                                detail = "Go to Android Settings > About Phone > Tap 'Build Number' 7 times. In Developer Options, enable 'Wireless Debugging' (must be on Wi-Fi or Hotspot)."
                             )
                             GuideStep(
                                 number = "2",
-                                title = "Pair Shizuku with Wireless Debugging",
-                                detail = "Open the Shizuku app, tap 'Pairing' under Wireless Debugging, split-screen or use the notification code, and input the 6-digit PIN."
+                                title = "Pair Directly on Phone",
+                                detail = "In Shizuku app, tap 'Pairing' under Wireless Debugging. Tap 'Developer options', choose 'Pair device with pairing code'. Enter the 6-digit code in the notification."
                             )
                             GuideStep(
                                 number = "3",
-                                title = "Start Shizuku Service",
-                                detail = "In Shizuku app, tap 'Start'. Return to this app and tap 'Authorize Shizuku Permission'."
+                                title = "Start Shizuku on Mobile",
+                                detail = "Return to Shizuku app and tap 'Start'. Shizuku will start running in the background."
                             )
                             GuideStep(
                                 number = "4",
-                                title = "Alternative: Start via PC ADB",
-                                detail = "Connect phone to PC with USB Debugging enabled, and run:\nadb shell rish"
+                                title = "Authorize This App",
+                                detail = "In Shizuku app under 'Authorized Applications', toggle Moses Mod ON, or tap 'Authorize Shizuku Permission' right here!"
                             )
                         }
                     }

@@ -207,6 +207,8 @@ fun ShizukuStatusCard(
     state: ShizukuState,
     onRequestPermission: () -> Unit,
     onRefresh: () -> Unit,
+    onOpenShizuku: () -> Unit = {},
+    onTestPrivilege: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val isReady = state.isRunning && state.hasPermission
@@ -254,9 +256,9 @@ fun ShizukuStatusCard(
 
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = if (isReady) "Shizuku is running"
-                        else if (state.isRunning) "Shizuku is waiting"
-                        else "Shizuku offline",
+                        text = if (isReady) "Shizuku is Connected & Ready"
+                        else if (state.isRunning) "Shizuku Service Detected"
+                        else "Shizuku is Offline",
                         style = MaterialTheme.typography.titleMedium.copy(
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 18.sp,
@@ -265,9 +267,9 @@ fun ShizukuStatusCard(
                     )
                     Text(
                         text = when {
-                            state.isRunning && state.hasPermission -> "Authorized via Wireless Debugging / Root"
-                            state.isRunning -> "Service connected. Tap below to authorize."
-                            else -> "Start Shizuku app or connect via ADB"
+                            state.isRunning && state.hasPermission -> "Authorized via Wireless Debugging (UID: ${state.uid})"
+                            state.isRunning -> "Service running! Tap 'Authorize' to link this app."
+                            else -> "Start Shizuku via Wireless Debugging on mobile"
                         },
                         style = MaterialTheme.typography.bodySmall.copy(
                             color = NaturalPrimary.copy(alpha = 0.85f),
@@ -296,45 +298,97 @@ fun ShizukuStatusCard(
                 )
             }
 
-            if (state.isRunning && !state.hasPermission) {
-                Button(
-                    onClick = onRequestPermission,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("request_shizuku_perm_button"),
-                    shape = RoundedCornerShape(24.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = NaturalPrimary,
-                        contentColor = NaturalOnPrimary
-                    )
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Key,
-                        contentDescription = null,
-                        modifier = Modifier.size(18.dp)
-                    )
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text(text = "Authorize Shizuku Permission", fontWeight = FontWeight.SemiBold)
-                }
-            } else if (!state.isRunning) {
+            if (isReady) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
                     Button(
-                        onClick = onRefresh,
+                        onClick = onTestPrivilege,
                         modifier = Modifier
-                            .fillMaxWidth()
-                            .testTag("recheck_shizuku_button"),
+                            .weight(1f)
+                            .testTag("test_shizuku_privilege_button"),
                         shape = RoundedCornerShape(24.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = NaturalPrimary,
                             contentColor = NaturalOnPrimary
                         )
                     ) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(text = "Re-check Shizuku Bridge", fontWeight = FontWeight.SemiBold)
+                        Text(text = "⚡ Test Privileged Shell", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                    }
+                    OutlinedButton(
+                        onClick = onRefresh,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(24.dp))
+                            .testTag("refresh_shizuku_card_button"),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh", modifier = Modifier.size(16.dp))
+                    }
+                }
+            } else if (state.isRunning && !state.hasPermission) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = onRequestPermission,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .testTag("request_shizuku_perm_button"),
+                        shape = RoundedCornerShape(24.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NaturalPrimary,
+                            contentColor = NaturalOnPrimary
+                        )
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Key,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(text = "Authorize Shizuku Permission", fontWeight = FontWeight.SemiBold)
+                    }
+                    OutlinedButton(
+                        onClick = onOpenShizuku,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Text(text = "Open Shizuku App", fontWeight = FontWeight.Medium)
+                    }
+                }
+            } else {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Button(
+                            onClick = onOpenShizuku,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("open_shizuku_app_button"),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NaturalPrimary,
+                                contentColor = NaturalOnPrimary
+                            )
+                        ) {
+                            Text(text = "📱 Open Shizuku App", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        }
+                        Button(
+                            onClick = onRefresh,
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("recheck_shizuku_button"),
+                            shape = RoundedCornerShape(24.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NaturalSecondaryContainer,
+                                contentColor = NaturalPrimary
+                            )
+                        ) {
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(text = "Re-check", fontWeight = FontWeight.SemiBold, fontSize = 13.sp)
+                        }
                     }
                 }
             }

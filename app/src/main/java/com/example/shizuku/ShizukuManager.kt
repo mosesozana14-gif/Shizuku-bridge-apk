@@ -180,15 +180,16 @@ class ShizukuManager(private val context: Context) {
             }
 
             val process: Process = try {
-                val newProcessMethod = Shizuku::class.java.getMethod(
+                val newProcessMethod = Shizuku::class.java.getDeclaredMethod(
                     "newProcess",
                     Array<String>::class.java,
                     Array<String>::class.java,
                     String::class.java
                 )
+                newProcessMethod.isAccessible = true
                 @Suppress("UNCHECKED_CAST")
                 newProcessMethod.invoke(null, fullCommand, null, null) as Process
-            } catch (e: Exception) {
+            } catch (_: Throwable) {
                 Runtime.getRuntime().exec(fullCommand)
             }
 
@@ -240,6 +241,25 @@ class ShizukuManager(private val context: Context) {
 
         val overallSuccess = resSecure.isSuccess || resSettings.isSuccess || resAppOpsFallback.isSuccess
         Pair(overallSuccess, log.toString())
+    }
+
+    fun launchShizukuApp(): Boolean {
+        return try {
+            val intent = context.packageManager.getLaunchIntentForPackage("moe.shizuku.privileged.api")
+            if (intent != null) {
+                intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                true
+            } else {
+                false
+            }
+        } catch (_: Exception) {
+            false
+        }
+    }
+
+    suspend fun runDiagnosticTest(): CommandResult = withContext(Dispatchers.IO) {
+        executePrivilegedCommand("id; getprop ro.build.version.release; getprop ro.product.model")
     }
 
     companion object {

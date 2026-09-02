@@ -65,6 +65,11 @@ class MosesModOverlayService : Service() {
         setupFloatingPill()
         setupHudOverlay()
 
+        val shizuku = com.example.shizuku.ShizukuManager(applicationContext)
+        shizuku.initialize()
+        val bitLife = com.example.bitlife.BitLifeManager(applicationContext, shizuku)
+        MosesModRepository.initialize(bitLife)
+
         MosesModRepository.setOverlayActive(true)
 
         serviceScope.launch {

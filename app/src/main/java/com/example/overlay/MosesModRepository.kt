@@ -38,15 +38,17 @@ object MosesModRepository {
     private val scope = CoroutineScope(Dispatchers.Main)
 
     fun initialize(manager: BitLifeManager) {
-        this.bitLifeManager = manager
-        scope.launch {
-            manager.currentStats.collect { stats ->
-                _activeStats.value = stats
+        if (this.bitLifeManager == null) {
+            this.bitLifeManager = manager
+            scope.launch {
+                manager.currentStats.collect { stats ->
+                    _activeStats.value = stats
+                }
             }
-        }
-        scope.launch {
-            manager.selectedSlot.collect { slot ->
-                _selectedSlot.value = slot
+            scope.launch {
+                manager.selectedSlot.collect { slot ->
+                    _selectedSlot.value = slot
+                }
             }
         }
     }
@@ -88,8 +90,19 @@ object MosesModRepository {
             onComplete(false, "BitLife Manager not attached")
             return
         }
-        val slot = _selectedSlot.value ?: run {
-            onComplete(false, "No active save slot selected")
+        val slot = _selectedSlot.value
+        if (slot == null) {
+            scope.launch {
+                val scan = manager.scanBitLifeFiles()
+                val detected = scan.availableSlots.firstOrNull()
+                if (detected != null) {
+                    val (success, msg) = manager.saveAndApplyStats(detected, _activeStats.value)
+                    _overlayMessage.value = msg
+                    onComplete(success, msg)
+                } else {
+                    onComplete(false, "No active BitLife save found. Start a life in BitLife first!")
+                }
+            }
             return
         }
 
