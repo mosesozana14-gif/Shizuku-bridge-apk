@@ -307,9 +307,104 @@ class MosesModOverlayService : Service() {
             orientation = LinearLayout.VERTICAL
         }
 
-        // Section 1: Social Media Hub
-        addSectionHeader(contentLayout, "📱 SOCIAL MEDIA & SUBSCRIBERS HUB")
+        // Section 1: Godly Power-Ups & In-Game Cheats
         val curStats = MosesModRepository.activeStats.value
+        addSectionHeader(contentLayout, "👑 GODLY POWER-UPS & CHEATS")
+        val curPwr = curStats.powerUps
+
+        addToggleRow(contentLayout, "🎰 Lottery Auto-Win 100% (Instant Jackpot)", curPwr.lotteryAutoWin) {
+            MosesModRepository.updatePowerUps { p -> p.copy(lotteryAutoWin = it) }
+        }
+
+        addToggleRow(contentLayout, "🃏 Casino & Blackjack 100% Win Rate", curPwr.casino100Win) {
+            MosesModRepository.updatePowerUps { p -> p.copy(casino100Win = it) }
+        }
+
+        addToggleRow(contentLayout, "🗡️ 100% Crime/Murder Success & 0% Arrest", curPwr.crime100Success) {
+            MosesModRepository.updatePowerUps { p -> p.copy(crime100Success = it) }
+        }
+
+        addToggleRow(contentLayout, "🏃 100% Prison Escape (Ghost Inmate)", curPwr.prisonEscape100) {
+            MosesModRepository.updatePowerUps { p -> p.copy(prisonEscape100 = it) }
+        }
+
+        addToggleRow(contentLayout, "💉 Complete Disease Immunity & Immortality", curPwr.diseaseImmunity) {
+            MosesModRepository.updatePowerUps { p -> p.copy(diseaseImmunity = it) }
+        }
+
+        addToggleRow(contentLayout, "💅 Flawless Plastic Surgery (Zero Botch)", curPwr.plasticSurgeryFlawless) {
+            MosesModRepository.updatePowerUps { p -> p.copy(plasticSurgeryFlawless = it) }
+        }
+
+        addToggleRow(contentLayout, "👔 Instant Promotion to CEO / Godfather", curPwr.instantPromotionCEO) {
+            MosesModRepository.updatePowerUps { p -> p.copy(instantPromotionCEO = it) }
+        }
+
+        addToggleRow(contentLayout, "🏺 Unlock All Rare Heirlooms (Holy Grail, Ark)", curPwr.heirloomsUnlocked) {
+            MosesModRepository.updatePowerUps { p -> p.copy(heirloomsUnlocked = it) }
+        }
+
+        addToggleRow(contentLayout, "👶 100% Fertility + Twins/Triplets Guarantee", curPwr.fertilityTwinsTriplets) {
+            MosesModRepository.updatePowerUps { p -> p.copy(fertilityTwinsTriplets = it) }
+        }
+
+        addToggleRow(contentLayout, "⏳ Unlimited Free Time Machine", curPwr.unlimitedTimeMachine) {
+            MosesModRepository.updatePowerUps { p -> p.copy(unlimitedTimeMachine = it) }
+        }
+
+        // Section 2: God Mode Stats & Unlimited Cash
+        addSectionHeader(contentLayout, "💰 GOD MODE WEALTH & ATTRIBUTES")
+
+        addNumberRow(contentLayout, "💵 Bank Balance / Cash ($)", curStats.bankBalance.toString(), listOf("+$50M", "+$100M", "1 Billion", "100 Billion")) { newVal ->
+            MosesModRepository.updateStats(MosesModRepository.activeStats.value.copy(bankBalance = newVal))
+        }
+
+        // Quick Max All Stats Button
+        val maxStatsBtn = Button(this).apply {
+            text = "⚡ MAX ALL STATS TO 100% (GOD MODE)"
+            textSize = 12f
+            typeface = Typeface.DEFAULT_BOLD
+            setTextColor(Color.parseColor("#15241C"))
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 18f
+                setColor(Color.parseColor("#7AD59F"))
+            }
+            setPadding(16, 16, 16, 16)
+            val bp = LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                bottomMargin = 14
+            }
+            layoutParams = bp
+            setOnClickListener {
+                val current = MosesModRepository.activeStats.value
+                val maxed = current.copy(
+                    happiness = 100,
+                    health = 100,
+                    smarts = 100,
+                    looks = 100,
+                    karma = 100,
+                    fame = 100,
+                    athleticism = 100,
+                    discipline = 100,
+                    willpower = 100,
+                    musicTalent = 100,
+                    actingTalent = 100,
+                    voiceTalent = 100,
+                    streetSmarts = 100,
+                    fertility = 100,
+                    generosity = 100,
+                    jobPerformance = 100,
+                    schoolGrades = 100,
+                    ageAtDeath = 1000
+                )
+                MosesModRepository.updateStats(maxed)
+                Toast.makeText(this@MosesModOverlayService, "All Stats Maxed to 100% + Immortality!", Toast.LENGTH_SHORT).show()
+            }
+        }
+        contentLayout.addView(maxStatsBtn)
+
+        // Section 3: Social Media Hub
+        addSectionHeader(contentLayout, "📱 SOCIAL MEDIA & SUBSCRIBERS HUB")
         val curSoc = curStats.socialStats
 
         val ytInput = addNumberRow(contentLayout, "YouTube Subscribers", curSoc.youtubeSubscribers.toString(), listOf("+1M", "+10M", "+100M", "1 Billion")) { newVal ->
@@ -338,46 +433,6 @@ class MosesModOverlayService : Service() {
 
         addToggleRow(contentLayout, "100% Viral Boost Multiplier", curSoc.viralBoost) { isChecked ->
             MosesModRepository.updateSocialStats { it.copy(viralBoost = isChecked) }
-        }
-
-        // Section 2: Godly Power-Ups & In-Game Perks
-        addSectionHeader(contentLayout, "👑 GODLY POWER-UPS & PERKS")
-        val curPwr = curStats.powerUps
-
-        addToggleRow(contentLayout, "🎰 Lottery Auto-Win 100% (Instant Jackpot)", curPwr.lotteryAutoWin) {
-            MosesModRepository.updatePowerUps { p -> p.copy(lotteryAutoWin = it) }
-        }
-
-        addToggleRow(contentLayout, "🃏 Casino & Blackjack 100% Win Rate", curPwr.casino100Win) {
-            MosesModRepository.updatePowerUps { p -> p.copy(casino100Win = it) }
-        }
-
-        addToggleRow(contentLayout, "🗡️ 100% Crime/Murder Success & 0% Arrest", curPwr.crime100Success) {
-            MosesModRepository.updatePowerUps { p -> p.copy(crime100Success = it) }
-        }
-
-        addToggleRow(contentLayout, "🏃 100% Prison Escape (Ghost Inmate)", curPwr.prisonEscape100) {
-            MosesModRepository.updatePowerUps { p -> p.copy(prisonEscape100 = it) }
-        }
-
-        addToggleRow(contentLayout, "💉 Complete Disease Immunity & Cure All", curPwr.diseaseImmunity) {
-            MosesModRepository.updatePowerUps { p -> p.copy(diseaseImmunity = it) }
-        }
-
-        addToggleRow(contentLayout, "💅 Flawless Plastic Surgery (Zero Botch)", curPwr.plasticSurgeryFlawless) {
-            MosesModRepository.updatePowerUps { p -> p.copy(plasticSurgeryFlawless = it) }
-        }
-
-        addToggleRow(contentLayout, "👔 Instant Promotion to CEO / Godfather", curPwr.instantPromotionCEO) {
-            MosesModRepository.updatePowerUps { p -> p.copy(instantPromotionCEO = it) }
-        }
-
-        addToggleRow(contentLayout, "👶 100% Fertility + Twins/Triplets Guarantee", curPwr.fertilityTwinsTriplets) {
-            MosesModRepository.updatePowerUps { p -> p.copy(fertilityTwinsTriplets = it) }
-        }
-
-        addToggleRow(contentLayout, "⏳ Unlimited Free Time Machine", curPwr.unlimitedTimeMachine) {
-            MosesModRepository.updatePowerUps { p -> p.copy(unlimitedTimeMachine = it) }
         }
 
         scrollView.addView(contentLayout)
