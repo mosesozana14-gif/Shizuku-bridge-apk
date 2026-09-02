@@ -422,9 +422,15 @@ fun BitLifeStatsEditorTab(
                                     instantPromotionCEO = true,
                                     heirloomsUnlocked = true,
                                     fertilityTwinsTriplets = true,
-                                    unlimitedTimeMachine = true
+                                    unlimitedTimeMachine = true,
+                                    cryptoStockMarketMaster = true,
+                                    luxuryEstateSupercars = true,
+                                    ultraViralBoost = true
                                 )
-                                editableStats = editableStats.copy(powerUps = p)
+                                editableStats = editableStats.copy(
+                                    powerUps = p,
+                                    socialStats = editableStats.socialStats.copy(viralBoost = true, isVerified = true)
+                                )
                             }
                         )
                         PresetChip(
@@ -704,6 +710,37 @@ fun BitLifeStatsEditorTab(
                     onCheckedChange = {
                         editableStats = editableStats.copy(
                             powerUps = editableStats.powerUps.copy(fertilityTwinsTriplets = it)
+                        )
+                    }
+                )
+
+                ToggleItemRow(
+                    label = "🚀 100% Go Ultra Viral (Instant Posts Virality)",
+                    checked = editableStats.powerUps.ultraViralBoost || editableStats.socialStats.viralBoost,
+                    onCheckedChange = {
+                        editableStats = editableStats.copy(
+                            powerUps = editableStats.powerUps.copy(ultraViralBoost = it),
+                            socialStats = editableStats.socialStats.copy(viralBoost = it)
+                        )
+                    }
+                )
+
+                ToggleItemRow(
+                    label = "📈 Crypto & Stock Market Trading Expansion Pack",
+                    checked = editableStats.powerUps.cryptoStockMarketMaster,
+                    onCheckedChange = {
+                        editableStats = editableStats.copy(
+                            powerUps = editableStats.powerUps.copy(cryptoStockMarketMaster = it)
+                        )
+                    }
+                )
+
+                ToggleItemRow(
+                    label = "💎 Luxurious Estates, Supercars & Megayachts Pack",
+                    checked = editableStats.powerUps.luxuryEstateSupercars,
+                    onCheckedChange = {
+                        editableStats = editableStats.copy(
+                            powerUps = editableStats.powerUps.copy(luxuryEstateSupercars = it)
                         )
                     }
                 )

@@ -43,6 +43,9 @@ data class BitLifePowerUps(
     val heirloomsUnlocked: Boolean = false,
     val fertilityTwinsTriplets: Boolean = false,
     val unlimitedTimeMachine: Boolean = false,
+    val cryptoStockMarketMaster: Boolean = false,
+    val luxuryEstateSupercars: Boolean = false,
+    val ultraViralBoost: Boolean = false,
     val royaltyRank: String = "None" // None, Prince, King, Emperor, Duke
 )
 

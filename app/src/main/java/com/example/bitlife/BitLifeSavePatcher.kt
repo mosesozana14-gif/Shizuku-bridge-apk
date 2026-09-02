@@ -109,7 +109,10 @@ object BitLifeSavePatcher {
             instantPromotionCEO = extractBool("InstantPromotionCEO", "m_instantPromotionCEO", default = current.powerUps.instantPromotionCEO),
             heirloomsUnlocked = extractBool("HeirloomsUnlocked", "m_heirloomsUnlocked", default = current.powerUps.heirloomsUnlocked),
             fertilityTwinsTriplets = extractBool("FertilityTwinsTriplets", "m_fertilityTwinsTriplets", default = current.powerUps.fertilityTwinsTriplets),
-            unlimitedTimeMachine = extractBool("UnlimitedTimeMachine", "m_unlimitedTimeMachine", default = current.powerUps.unlimitedTimeMachine)
+            unlimitedTimeMachine = extractBool("UnlimitedTimeMachine", "m_unlimitedTimeMachine", default = current.powerUps.unlimitedTimeMachine),
+            cryptoStockMarketMaster = extractBool("CryptoStockMarketMaster", "CryptoExpansion", "m_cryptoExpansion", default = current.powerUps.cryptoStockMarketMaster),
+            luxuryEstateSupercars = extractBool("LuxuryEstateSupercars", "LuxuriousExpansion", "m_luxuriousExpansion", default = current.powerUps.luxuryEstateSupercars),
+            ultraViralBoost = extractBool("UltraViralBoost", "UltraViral", "m_ultraViralBoost", default = current.powerUps.ultraViralBoost)
         )
 
         return current.copy(
@@ -143,9 +146,9 @@ object BitLifeSavePatcher {
     private fun patchTextContent(originalText: String, stats: BitLifeStats): String {
         var modified = originalText
 
-        fun replaceField(keys: List<String>, newValue: String) {
+        fun replaceField(keys: List<String>, newValue: String, parentTag: String = "SavedLife") {
             for (key in keys) {
-                val xmlRegex = Regex("""(<$key>)\s*[^<]+\s*(</$key>)""", RegexOption.IGNORE_CASE)
+                val xmlRegex = Regex("""(<$key>)\s*[^<]*\s*(</$key>)""", RegexOption.IGNORE_CASE)
                 if (xmlRegex.containsMatchIn(modified)) {
                     modified = xmlRegex.replace(modified, "$1$newValue$2")
                     return
@@ -163,52 +166,69 @@ object BitLifeSavePatcher {
                     return
                 }
             }
+
+            // Key not present in original document: append tag into parent tag or XML body
+            val primaryKey = keys.first()
+            if (modified.contains("</$parentTag>", ignoreCase = true)) {
+                modified = modified.replace("</$parentTag>", "  <$primaryKey>$newValue</$primaryKey>\n</$parentTag>", ignoreCase = true)
+            } else if (modified.contains("</SavedLife>", ignoreCase = true)) {
+                modified = modified.replace("</SavedLife>", "  <$primaryKey>$newValue</$primaryKey>\n</SavedLife>", ignoreCase = true)
+            } else if (modified.contains("}")) {
+                val lastBrace = modified.lastIndexOf('}')
+                if (lastBrace != -1) {
+                    modified = modified.substring(0, lastBrace) + ",\n  \"$primaryKey\": $newValue\n}"
+                }
+            }
         }
 
         // Core stats
-        replaceField(listOf("Happiness", "m_happiness", "happiness"), stats.happiness.toString())
-        replaceField(listOf("Health", "m_health", "health"), stats.health.toString())
-        replaceField(listOf("Smarts", "m_smarts", "smarts", "Intelligence"), stats.smarts.toString())
-        replaceField(listOf("Looks", "m_looks", "looks", "Appearance"), stats.looks.toString())
-        replaceField(listOf("Karma", "m_karma", "karma"), stats.karma.toString())
-        replaceField(listOf("Fame", "m_fame", "fame"), stats.fame.toString())
-        replaceField(listOf("Athleticism", "m_athleticism", "athleticism", "Athletics"), stats.athleticism.toString())
-        replaceField(listOf("Discipline", "m_discipline", "discipline"), stats.discipline.toString())
-        replaceField(listOf("Craziness", "m_craziness", "craziness"), stats.craziness.toString())
-        replaceField(listOf("Willpower", "m_willpower", "willpower"), stats.willpower.toString())
-        replaceField(listOf("Music", "m_music", "musicTalent"), stats.musicTalent.toString())
-        replaceField(listOf("Acting", "m_acting", "actingTalent"), stats.actingTalent.toString())
-        replaceField(listOf("Voice", "m_voice", "voiceTalent"), stats.voiceTalent.toString())
-        replaceField(listOf("StreetSmarts", "m_streetSmarts", "streetSmarts"), stats.streetSmarts.toString())
-        replaceField(listOf("Fertility", "m_fertility", "fertility"), stats.fertility.toString())
-        replaceField(listOf("Generosity", "m_generosity", "generosity"), stats.generosity.toString())
-        replaceField(listOf("Age", "m_age", "age"), stats.age.toString())
-        replaceField(listOf("ageAtDeath", "m_ageAtDeath", "AgeAtDeath", "Lifespan"), stats.ageAtDeath.toString())
-        replaceField(listOf("BankBalance", "m_bankBalance", "bankBalance", "Money", "Balance"), stats.bankBalance.toString())
-        replaceField(listOf("Salary", "m_salary", "salary", "YearlyPay"), stats.salary.toString())
-        replaceField(listOf("JobPerformance", "m_jobPerformance", "jobPerformance", "Performance"), stats.jobPerformance.toString())
-        replaceField(listOf("SchoolGrades", "m_schoolGrades", "schoolGrades", "Grades"), stats.schoolGrades.toString())
+        replaceField(listOf("Happiness", "m_happiness", "happiness"), stats.happiness.toString(), "Hero")
+        replaceField(listOf("Health", "m_health", "health"), stats.health.toString(), "Hero")
+        replaceField(listOf("Smarts", "m_smarts", "smarts", "Intelligence"), stats.smarts.toString(), "Hero")
+        replaceField(listOf("Looks", "m_looks", "looks", "Appearance"), stats.looks.toString(), "Hero")
+        replaceField(listOf("Karma", "m_karma", "karma"), stats.karma.toString(), "Hero")
+        replaceField(listOf("Fame", "m_fame", "fame"), stats.fame.toString(), "Hero")
+        replaceField(listOf("Athleticism", "m_athleticism", "athleticism", "Athletics"), stats.athleticism.toString(), "Hero")
+        replaceField(listOf("Discipline", "m_discipline", "discipline"), stats.discipline.toString(), "Hero")
+        replaceField(listOf("Craziness", "m_craziness", "craziness"), stats.craziness.toString(), "Hero")
+        replaceField(listOf("Willpower", "m_willpower", "willpower"), stats.willpower.toString(), "Hero")
+        replaceField(listOf("Music", "m_music", "musicTalent"), stats.musicTalent.toString(), "Hero")
+        replaceField(listOf("Acting", "m_acting", "actingTalent"), stats.actingTalent.toString(), "Hero")
+        replaceField(listOf("Voice", "m_voice", "voiceTalent"), stats.voiceTalent.toString(), "Hero")
+        replaceField(listOf("StreetSmarts", "m_streetSmarts", "streetSmarts"), stats.streetSmarts.toString(), "Hero")
+        replaceField(listOf("Fertility", "m_fertility", "fertility"), stats.fertility.toString(), "Hero")
+        replaceField(listOf("Generosity", "m_generosity", "generosity"), stats.generosity.toString(), "Hero")
+        replaceField(listOf("Age", "m_age", "age"), stats.age.toString(), "Hero")
+        replaceField(listOf("ageAtDeath", "m_ageAtDeath", "AgeAtDeath", "Lifespan"), stats.ageAtDeath.toString(), "Hero")
+        replaceField(listOf("BankBalance", "m_bankBalance", "bankBalance", "Money", "Balance"), stats.bankBalance.toString(), "Finances")
+        replaceField(listOf("Salary", "m_salary", "salary", "YearlyPay"), stats.salary.toString(), "Finances")
+        replaceField(listOf("JobPerformance", "m_jobPerformance", "jobPerformance", "Performance"), stats.jobPerformance.toString(), "Finances")
+        replaceField(listOf("SchoolGrades", "m_schoolGrades", "schoolGrades", "Grades"), stats.schoolGrades.toString(), "Finances")
 
         // Social Media & Moses Mod Menu stats
-        replaceField(listOf("YouTubeSubscribers", "m_youtubeSubscribers", "yt_subs"), stats.socialStats.youtubeSubscribers.toString())
-        replaceField(listOf("TikTokFollowers", "m_tiktokFollowers", "tiktok_followers"), stats.socialStats.tiktokFollowers.toString())
-        replaceField(listOf("InstagramFollowers", "m_instagramFollowers", "ig_followers"), stats.socialStats.instagramFollowers.toString())
-        replaceField(listOf("TwitterFollowers", "m_twitterFollowers", "x_followers"), stats.socialStats.twitterFollowers.toString())
-        replaceField(listOf("TwitchFollowers", "m_twitchFollowers", "twitch_followers"), stats.socialStats.twitchFollowers.toString())
-        replaceField(listOf("IsSocialVerified", "m_isVerified", "VerifiedBadge"), stats.socialStats.isVerified.toString())
-        replaceField(listOf("ViralBoost", "m_viralBoost"), stats.socialStats.viralBoost.toString())
+        replaceField(listOf("YouTubeSubscribers", "m_youtubeSubscribers", "yt_subs"), stats.socialStats.youtubeSubscribers.toString(), "SocialMedia")
+        replaceField(listOf("TikTokFollowers", "m_tiktokFollowers", "tiktok_followers"), stats.socialStats.tiktokFollowers.toString(), "SocialMedia")
+        replaceField(listOf("InstagramFollowers", "m_instagramFollowers", "ig_followers"), stats.socialStats.instagramFollowers.toString(), "SocialMedia")
+        replaceField(listOf("TwitterFollowers", "m_twitterFollowers", "x_followers"), stats.socialStats.twitterFollowers.toString(), "SocialMedia")
+        replaceField(listOf("TwitchFollowers", "m_twitchFollowers", "twitch_followers"), stats.socialStats.twitchFollowers.toString(), "SocialMedia")
+        replaceField(listOf("IsSocialVerified", "m_isVerified", "VerifiedBadge"), stats.socialStats.isVerified.toString(), "SocialMedia")
+        replaceField(listOf("ViralBoost", "m_viralBoost", "UltraViral"), (stats.socialStats.viralBoost || stats.powerUps.ultraViralBoost).toString(), "SocialMedia")
 
-        // Power-Ups
-        replaceField(listOf("LotteryAutoWin", "m_lotteryAutoWin"), stats.powerUps.lotteryAutoWin.toString())
-        replaceField(listOf("Casino100Win", "m_casino100Win"), stats.powerUps.casino100Win.toString())
-        replaceField(listOf("Crime100Success", "m_crime100Success"), stats.powerUps.crime100Success.toString())
-        replaceField(listOf("PrisonEscape100", "m_prisonEscape100"), stats.powerUps.prisonEscape100.toString())
-        replaceField(listOf("DiseaseImmunity", "m_diseaseImmunity"), stats.powerUps.diseaseImmunity.toString())
-        replaceField(listOf("PlasticSurgeryFlawless", "m_plasticSurgeryFlawless"), stats.powerUps.plasticSurgeryFlawless.toString())
-        replaceField(listOf("InstantPromotionCEO", "m_instantPromotionCEO"), stats.powerUps.instantPromotionCEO.toString())
-        replaceField(listOf("HeirloomsUnlocked", "m_heirloomsUnlocked"), stats.powerUps.heirloomsUnlocked.toString())
-        replaceField(listOf("FertilityTwinsTriplets", "m_fertilityTwinsTriplets"), stats.powerUps.fertilityTwinsTriplets.toString())
-        replaceField(listOf("RoyaltyRank", "m_royaltyRank"), "\"${stats.powerUps.royaltyRank}\"")
+        // Power-Ups & Cheats
+        replaceField(listOf("LotteryAutoWin", "m_lotteryAutoWin"), stats.powerUps.lotteryAutoWin.toString(), "PowerUps")
+        replaceField(listOf("Casino100Win", "m_casino100Win"), stats.powerUps.casino100Win.toString(), "PowerUps")
+        replaceField(listOf("Crime100Success", "m_crime100Success"), stats.powerUps.crime100Success.toString(), "PowerUps")
+        replaceField(listOf("PrisonEscape100", "m_prisonEscape100"), stats.powerUps.prisonEscape100.toString(), "PowerUps")
+        replaceField(listOf("DiseaseImmunity", "m_diseaseImmunity"), stats.powerUps.diseaseImmunity.toString(), "PowerUps")
+        replaceField(listOf("PlasticSurgeryFlawless", "m_plasticSurgeryFlawless"), stats.powerUps.plasticSurgeryFlawless.toString(), "PowerUps")
+        replaceField(listOf("InstantPromotionCEO", "m_instantPromotionCEO"), stats.powerUps.instantPromotionCEO.toString(), "PowerUps")
+        replaceField(listOf("HeirloomsUnlocked", "m_heirloomsUnlocked"), stats.powerUps.heirloomsUnlocked.toString(), "PowerUps")
+        replaceField(listOf("FertilityTwinsTriplets", "m_fertilityTwinsTriplets"), stats.powerUps.fertilityTwinsTriplets.toString(), "PowerUps")
+        replaceField(listOf("UnlimitedTimeMachine", "m_unlimitedTimeMachine"), stats.powerUps.unlimitedTimeMachine.toString(), "PowerUps")
+        replaceField(listOf("CryptoStockMarketMaster", "CryptoExpansion"), stats.powerUps.cryptoStockMarketMaster.toString(), "PowerUps")
+        replaceField(listOf("LuxuryEstateSupercars", "LuxuriousExpansion"), stats.powerUps.luxuryEstateSupercars.toString(), "PowerUps")
+        replaceField(listOf("UltraViralBoost", "UltraViral"), (stats.powerUps.ultraViralBoost || stats.socialStats.viralBoost).toString(), "PowerUps")
+        replaceField(listOf("RoyaltyRank", "m_royaltyRank"), "\"${stats.powerUps.royaltyRank}\"", "PowerUps")
 
         return modified
     }
@@ -498,7 +518,7 @@ object BitLifeSavePatcher {
             "UserBoughtCultJobPack",
             "UserBoughtAstronautJobPack",
             
-            // Expansions
+            // Expansions & Packs
             "UserBoughtZooExpansion",
             "UserBoughtMuseumExpansion",
             "UserBoughtSecretAgentExpansion",
@@ -507,6 +527,18 @@ object BitLifeSavePatcher {
             "UserBoughtCultExpansion",
             "UserBoughtDispensaryExpansion",
             "UserBoughtWeedDispensaryExpansion",
+            "UserBoughtCryptoExpansion",
+            "UserBoughtCryptoPack",
+            "UserBoughtStockMarketExpansion",
+            "UserBoughtStockMarketPack",
+            "UserBoughtInvestmentExpansion",
+            "UserBoughtInvestmentPack",
+            "UserBoughtLuxuriousExpansion",
+            "UserBoughtLuxuryExpansion",
+            "UserBoughtLuxuryPack",
+            "UserBoughtLuxuriousPack",
+            "UserBoughtJetsetterPack",
+            "UserBoughtRealEstateExpansion",
             
             // Items & Power-Ups
             "UserBoughtHollywoodStar",
@@ -525,6 +557,8 @@ object BitLifeSavePatcher {
             "UserBoughtGetOutOfJailFree",
             "UserBoughtCelebrityDatingApp",
             "UserBoughtHolyGrailItem",
+            "UserBoughtUltraViral",
+            "UserBoughtViralBoost",
             
             // Legacy / Universal aliases
             "Bitizen",
@@ -541,6 +575,12 @@ object BitLifeSavePatcher {
             "HollywoodStar",
             "AssassinBlade",
             "BrassKnuckles",
+            "CryptoExpansion",
+            "StockMarketExpansion",
+            "LuxuriousExpansion",
+            "LuxuryExpansion",
+            "UltraViral",
+            "ViralBoost",
             "AllJobPacksUnlocked",
             "AllExpansionsUnlocked",
             "AllItemsUnlocked"
@@ -557,6 +597,9 @@ object BitLifeSavePatcher {
         BitLifePerkInfo("Bitizenship", "Removes all ads, grants unlimited generations, pet breeds & dark mode", "Membership"),
         BitLifePerkInfo("God Mode", "Full editor for all characters, looks, stats, fertility, sexuality & craziness", "Editor"),
         BitLifePerkInfo("Boss Mode", "Unlocks all current and future Career & Job Packs forever", "Bundle"),
+        BitLifePerkInfo("Crypto & Stock Market Expansion", "Trade cryptocurrencies, stocks, bonds, short-selling & financial investments", "Expansion"),
+        BitLifePerkInfo("Luxurious & Luxury Expansion Pack", "Buy supercars, megayachts, private jets, fine jewelry & luxury estates", "Expansion"),
+        BitLifePerkInfo("Ultra Viral Boost Pack", "Guarantees 100% ultra-viral post rate and instant celebrity status", "Power-Up"),
         BitLifePerkInfo("Unlimited Time Machine", "Travel back in time years whenever you want with zero cost", "Power-Up"),
         BitLifePerkInfo("Golden Passport", "Emigrate to any country globally with 100% acceptance & no fees", "Item"),
         BitLifePerkInfo("Hollywood Star", "Instant 100% Fame & automatic A-List celebrity status in careers", "Item"),

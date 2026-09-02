@@ -748,11 +748,16 @@ class BitLifeManager(
             }
         }
 
+        // Automatically sync MonetizationVars DLCs (God Mode, Crypto, Luxurious, Ultra Viral, Boss Mode)
+        try {
+            unlockGodModeAndMonetization()
+        } catch (_: Exception) {}
+
         _currentStats.value = newStats
         _isBusy.value = false
 
         if (writeRes.isSuccess) {
-            Pair(true, "Stats saved & applied successfully! Backup created: savedLife.data.bak_$timestamp")
+            Pair(true, "Stats & God Mode Perks applied successfully! Backup created: savedLife.data.bak_$timestamp")
         } else {
             Pair(false, "Write command returned code ${writeRes.exitCode}: ${writeRes.error.ifEmpty { writeRes.output }}")
         }

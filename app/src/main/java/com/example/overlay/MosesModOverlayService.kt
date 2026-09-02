@@ -353,6 +353,19 @@ class MosesModOverlayService : Service() {
             MosesModRepository.updatePowerUps { p -> p.copy(fertilityTwinsTriplets = it) }
         }
 
+        addToggleRow(contentLayout, "🚀 100% Go Ultra Viral (Posts Virality)", curPwr.ultraViralBoost || curStats.socialStats.viralBoost) { isChecked ->
+            MosesModRepository.updatePowerUps { p -> p.copy(ultraViralBoost = isChecked) }
+            MosesModRepository.updateSocialStats { s -> s.copy(viralBoost = isChecked) }
+        }
+
+        addToggleRow(contentLayout, "📈 Crypto & Stock Market Expansion Pack", curPwr.cryptoStockMarketMaster) {
+            MosesModRepository.updatePowerUps { p -> p.copy(cryptoStockMarketMaster = it) }
+        }
+
+        addToggleRow(contentLayout, "💎 Luxurious Estates, Supercars & Yachts Pack", curPwr.luxuryEstateSupercars) {
+            MosesModRepository.updatePowerUps { p -> p.copy(luxuryEstateSupercars = it) }
+        }
+
         addToggleRow(contentLayout, "⏳ Unlimited Free Time Machine", curPwr.unlimitedTimeMachine) {
             MosesModRepository.updatePowerUps { p -> p.copy(unlimitedTimeMachine = it) }
         }
