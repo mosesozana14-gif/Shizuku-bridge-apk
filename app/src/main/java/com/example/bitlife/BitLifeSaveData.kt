@@ -1,13 +1,16 @@
 package com.example.bitlife
 
 data class BitLifeSlotInfo(
-    val slotName: String, // e.g., "sg1", "sg2", "Main Save (Root)"
+    val slotName: String, // e.g., "sg1", "sg2", "Main Save (Root)", "Picked from ZArchiver"
     val filePath: String, // e.g., "/storage/emulated/0/Android/data/com.candywriter.bitlife/files/sg1/savedLife.data"
+    val contentUri: android.net.Uri? = null,
     val ageDataFiles: List<String> = emptyList(),
     val lastModified: Long = 0L,
     val fileSize: Long = 0L,
     val characterSummary: String = "", // e.g., "Age 22 • $10.5M • 100% Health"
-    val isPrimaryActive: Boolean = false
+    val isPrimaryActive: Boolean = false,
+    val isPickedFile: Boolean = false,
+    val isMonetizationVars: Boolean = false
 )
 
 data class SupportedGame(

@@ -1,6 +1,7 @@
 package com.example.ui
 
 import android.app.Application
+import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.bitlife.BitLifeManager
@@ -109,20 +110,46 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     // --- BitLife Save & Stats Actions ---
 
-    fun scanBitLife() {
+    fun autoFindBitLife() {
         viewModelScope.launch {
             _isBusy.value = true
-            log("Scanning device for BitLife save slots in /Android/data/com.candywriter.bitlife/files...")
+            log("⚡ Initiating Auto-Finder: Crawling storage, Android/data & filesystems for BitLife save data...")
             val result = bitLifeManager.scanBitLifeFiles()
             if (result.availableSlots.isNotEmpty()) {
-                log("Discovered ${result.availableSlots.size} save slot(s): ${result.availableSlots.joinToString { it.slotName }}")
+                val active = result.availableSlots.first()
+                log("✓ Auto-Finder Succeeded! Found ${result.availableSlots.size} save file(s). Automatically loaded '${active.slotName}' (${active.characterSummary ?: active.filePath}) into editor.")
+            } else if (result.baseDirFound.isNotEmpty()) {
+                log("Found BitLife directory (${result.baseDirFound}), but no save character exists yet. Tap 'Auto-Create & Inject God Life' to generate a maxed character instantly!", isError = false)
             } else if (result.error.isNotEmpty()) {
                 log(result.error, isError = true)
             } else {
-                log("No active BitLife save slots found yet. Open BitLife to create a life.", isError = false)
+                log("No BitLife save files found automatically. Open BitLife once or tap 'Auto-Create & Inject God Life' to initialize.", isError = false)
             }
             _isBusy.value = false
         }
+    }
+
+    fun autoInjectGodLife() {
+        viewModelScope.launch {
+            _isBusy.value = true
+            log("⚡ Auto-Creating & Injecting brand-new God Mode life ($10B cash, 100% stats, all DLCs) into BitLife...")
+            val (success, msg) = bitLifeManager.autoInjectNewGodLife()
+            log(msg, isError = !success)
+            _isBusy.value = false
+        }
+    }
+
+    fun launchBitLife(): Boolean {
+        log("Launching BitLife...")
+        val launched = bitLifeManager.launchBitLifeApp()
+        if (!launched) {
+            log("Could not find BitLife app package to launch. Make sure BitLife is installed.", isError = true)
+        }
+        return launched
+    }
+
+    fun scanBitLife() {
+        autoFindBitLife()
     }
 
     fun selectGame(game: com.example.bitlife.SupportedGame) {
@@ -162,6 +189,40 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             _isBusy.value = true
             log("Injecting MonetizationVars (God Mode, Bitizenship, Boss Mode, All Expansion Packs) via Shizuku...")
             val (success, msg) = bitLifeManager.unlockGodModeAndMonetization()
+            log(msg, isError = !success)
+            _isBusy.value = false
+        }
+    }
+
+    fun isZArchiverInstalled(): Boolean = bitLifeManager.isZArchiverInstalled()
+
+    fun launchZArchiver(): Boolean = bitLifeManager.launchZArchiver()
+
+    fun loadPickedFile(uri: Uri) {
+        viewModelScope.launch {
+            _isBusy.value = true
+            log("Opening save file from Storage / ZArchiver: $uri...")
+            val (success, msg) = bitLifeManager.loadPickedFile(uri)
+            log(msg, isError = !success)
+            _isBusy.value = false
+        }
+    }
+
+    fun exportPatchedSave(targetUri: Uri, newStats: BitLifeStats) {
+        viewModelScope.launch {
+            _isBusy.value = true
+            log("Exporting patched save file to $targetUri...")
+            val (success, msg) = bitLifeManager.exportPatchedSave(targetUri, newStats)
+            log(msg, isError = !success)
+            _isBusy.value = false
+        }
+    }
+
+    fun exportGodModeMonetization(targetUri: Uri) {
+        viewModelScope.launch {
+            _isBusy.value = true
+            log("Exporting God Mode MonetizationVars to $targetUri...")
+            val (success, msg) = bitLifeManager.exportGodModeMonetization(targetUri)
             log(msg, isError = !success)
             _isBusy.value = false
         }

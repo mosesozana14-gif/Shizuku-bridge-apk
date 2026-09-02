@@ -1,5 +1,7 @@
 package com.example.ui.components
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -28,7 +30,10 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.FileOpen
 import androidx.compose.material.icons.filled.Folder
+import androidx.compose.material.icons.filled.FolderOpen
+import androidx.compose.material.icons.filled.HelpOutline
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.MilitaryTech
@@ -40,6 +45,7 @@ import androidx.compose.material.icons.filled.School
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material.icons.filled.Verified
 import androidx.compose.material.icons.filled.VerifiedUser
 import androidx.compose.material.icons.filled.Visibility
@@ -132,6 +138,43 @@ fun BitLifeStatsEditorTab(
     var twitchInput by remember(editableStats.socialStats.twitchFollowers) { mutableStateOf(editableStats.socialStats.twitchFollowers.toString()) }
 
     var showAllPerksDialog by remember { mutableStateOf(false) }
+
+    val openSaveLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri != null) {
+            viewModel.loadPickedFile(uri)
+        }
+    }
+
+    val exportSaveLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        if (uri != null) {
+            val finalStats = editableStats.copy(
+                bankBalance = moneyInput.toLongOrNull() ?: editableStats.bankBalance,
+                salary = salaryInput.toLongOrNull() ?: editableStats.salary,
+                age = ageInput.toIntOrNull() ?: editableStats.age,
+                ageAtDeath = ageAtDeathInput.toIntOrNull() ?: editableStats.ageAtDeath,
+                socialStats = editableStats.socialStats.copy(
+                    youtubeSubscribers = ytInput.toLongOrNull() ?: editableStats.socialStats.youtubeSubscribers,
+                    tiktokFollowers = tiktokInput.toLongOrNull() ?: editableStats.socialStats.tiktokFollowers,
+                    instagramFollowers = igInput.toLongOrNull() ?: editableStats.socialStats.instagramFollowers,
+                    twitterFollowers = xInput.toLongOrNull() ?: editableStats.socialStats.twitterFollowers,
+                    twitchFollowers = twitchInput.toLongOrNull() ?: editableStats.socialStats.twitchFollowers
+                )
+            )
+            viewModel.exportPatchedSave(uri, finalStats)
+        }
+    }
+
+    val exportMonetizationLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.CreateDocument("application/octet-stream")
+    ) { uri ->
+        if (uri != null) {
+            viewModel.exportGodModeMonetization(uri)
+        }
+    }
 
     LaunchedEffect(Unit) {
         if (shizukuState.hasPermission) {
@@ -250,11 +293,19 @@ fun BitLifeStatsEditorTab(
                 selectedSlot = selectedSlot,
                 selectedGame = selectedGame,
                 isBusy = isBusy,
+                hasShizukuPermission = shizukuState.hasPermission,
+                onAutoFind = { viewModel.autoFindBitLife() },
+                onAutoInjectGodLife = { viewModel.autoInjectGodLife() },
+                onLaunchBitLife = { viewModel.launchBitLife() },
+                onRequestShizuku = { viewModel.requestShizukuPermission() },
                 onScan = { viewModel.scanBitLife() },
                 onSelectGame = { game -> viewModel.selectGame(game) },
                 onSelectSlot = { slot ->
                     viewModel.selectBitLifeSlot(slot)
-                }
+                },
+                onPickFile = { openSaveLauncher.launch(arrayOf("*/*")) },
+                onLaunchZArchiver = { viewModel.launchZArchiver() },
+                isZArchiverInstalled = viewModel.isZArchiverInstalled()
             )
         }
 
@@ -373,48 +424,72 @@ fun BitLifeStatsEditorTab(
             }
         }
 
-        // Primary Save & Apply Action Button
+        // Primary Save & Apply Action Button + Export Button
         item {
-            Button(
-                onClick = {
-                    val finalStats = editableStats.copy(
-                        bankBalance = moneyInput.toLongOrNull() ?: editableStats.bankBalance,
-                        salary = salaryInput.toLongOrNull() ?: editableStats.salary,
-                        age = ageInput.toIntOrNull() ?: editableStats.age,
-                        ageAtDeath = ageAtDeathInput.toIntOrNull() ?: editableStats.ageAtDeath,
-                        socialStats = editableStats.socialStats.copy(
-                            youtubeSubscribers = ytInput.toLongOrNull() ?: editableStats.socialStats.youtubeSubscribers,
-                            tiktokFollowers = tiktokInput.toLongOrNull() ?: editableStats.socialStats.tiktokFollowers,
-                            instagramFollowers = igInput.toLongOrNull() ?: editableStats.socialStats.instagramFollowers,
-                            twitterFollowers = xInput.toLongOrNull() ?: editableStats.socialStats.twitterFollowers,
-                            twitchFollowers = twitchInput.toLongOrNull() ?: editableStats.socialStats.twitchFollowers
-                        )
-                    )
-                    viewModel.saveBitLifeStats(finalStats)
-                },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(58.dp)
-                    .testTag("save_bitlife_stats_button"),
-                shape = RoundedCornerShape(20.dp),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = NaturalPrimary,
-                    contentColor = NaturalOnPrimary
-                ),
-                enabled = !isBusy && selectedSlot != null
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                if (isBusy) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(22.dp),
-                        color = NaturalOnPrimary,
-                        strokeWidth = 2.dp
-                    )
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text("Patching & Saving via Shizuku...", fontWeight = FontWeight.Bold)
-                } else {
-                    Icon(imageVector = Icons.Default.Save, contentDescription = null)
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Text("SAVE & APPLY TO BITLIFE", fontWeight = FontWeight.Bold, fontSize = 15.sp)
+                Button(
+                    onClick = {
+                        val finalStats = editableStats.copy(
+                            bankBalance = moneyInput.toLongOrNull() ?: editableStats.bankBalance,
+                            salary = salaryInput.toLongOrNull() ?: editableStats.salary,
+                            age = ageInput.toIntOrNull() ?: editableStats.age,
+                            ageAtDeath = ageAtDeathInput.toIntOrNull() ?: editableStats.ageAtDeath,
+                            socialStats = editableStats.socialStats.copy(
+                                youtubeSubscribers = ytInput.toLongOrNull() ?: editableStats.socialStats.youtubeSubscribers,
+                                tiktokFollowers = tiktokInput.toLongOrNull() ?: editableStats.socialStats.tiktokFollowers,
+                                instagramFollowers = igInput.toLongOrNull() ?: editableStats.socialStats.instagramFollowers,
+                                twitterFollowers = xInput.toLongOrNull() ?: editableStats.socialStats.twitterFollowers,
+                                twitchFollowers = twitchInput.toLongOrNull() ?: editableStats.socialStats.twitchFollowers
+                            )
+                        )
+                        viewModel.saveBitLifeStats(finalStats)
+                    },
+                    modifier = Modifier
+                        .weight(1.3f)
+                        .height(58.dp)
+                        .testTag("save_bitlife_stats_button"),
+                    shape = RoundedCornerShape(20.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = NaturalPrimary,
+                        contentColor = NaturalOnPrimary
+                    ),
+                    enabled = !isBusy && selectedSlot != null
+                ) {
+                    if (isBusy) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(22.dp),
+                            color = NaturalOnPrimary,
+                            strokeWidth = 2.dp
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Saving...", fontWeight = FontWeight.Bold)
+                    } else {
+                        Icon(imageVector = Icons.Default.Save, contentDescription = null)
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            if (selectedSlot?.isPickedFile == true) "SAVE TO PICKED FILE" else "SAVE & APPLY TO BITLIFE",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 13.sp
+                        )
+                    }
+                }
+
+                OutlinedButton(
+                    onClick = { exportSaveLauncher.launch("savedLife.data") },
+                    modifier = Modifier
+                        .weight(0.85f)
+                        .height(58.dp)
+                        .testTag("export_save_button"),
+                    shape = RoundedCornerShape(20.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.5.dp, NaturalPrimary),
+                    enabled = !isBusy
+                ) {
+                    Icon(imageVector = Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("EXPORT FILE", fontWeight = FontWeight.Bold, fontSize = 12.sp)
                 }
             }
         }
@@ -935,6 +1010,21 @@ fun BitLifeStatsEditorTab(
                     }
 
                     OutlinedButton(
+                        onClick = { exportMonetizationLauncher.launch("MonetizationVars") },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp)
+                            .testTag("export_monetization_button"),
+                        shape = RoundedCornerShape(14.dp),
+                        border = androidx.compose.foundation.BorderStroke(1.5.dp, NaturalPrimary),
+                        enabled = !isBusy
+                    ) {
+                        Icon(imageVector = Icons.Default.UploadFile, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("EXPORT MONETIZATIONVARS (FOR ZARCHIVER)", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                    }
+
+                    OutlinedButton(
                         onClick = { showAllPerksDialog = !showAllPerksDialog },
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedCornerShape(14.dp),
@@ -1106,9 +1196,17 @@ private fun BitLifeHeaderCard(
     selectedSlot: BitLifeSlotInfo?,
     selectedGame: com.example.bitlife.SupportedGame,
     isBusy: Boolean,
+    hasShizukuPermission: Boolean,
+    onAutoFind: () -> Unit,
+    onAutoInjectGodLife: () -> Unit,
+    onLaunchBitLife: () -> Unit,
+    onRequestShizuku: () -> Unit,
     onScan: () -> Unit,
     onSelectGame: (com.example.bitlife.SupportedGame) -> Unit,
-    onSelectSlot: (BitLifeSlotInfo) -> Unit
+    onSelectSlot: (BitLifeSlotInfo) -> Unit,
+    onPickFile: () -> Unit,
+    onLaunchZArchiver: () -> Unit,
+    isZArchiverInstalled: Boolean
 ) {
     Card(
         modifier = Modifier
@@ -1206,79 +1304,403 @@ private fun BitLifeHeaderCard(
 
             HorizontalDivider(color = NaturalOutlineVariant.copy(alpha = 0.5f))
 
-            // 2. SCAN HEADER & RESCAN
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+            // 2. HERO: 100% AUTOMATIC SAVE FINDER & AUTO-LOAD
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("auto_save_finder_hero_card"),
+                shape = RoundedCornerShape(22.dp),
+                colors = CardDefaults.cardColors(containerColor = NaturalPrimaryContainer),
+                border = androidx.compose.foundation.BorderStroke(2.dp, NaturalPrimary)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Box(
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(42.dp)
+                                .clip(CircleShape)
+                                .background(NaturalPrimary),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Bolt,
+                                contentDescription = null,
+                                tint = NaturalOnPrimary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "⚡ AUTOMATIC SAVE FINDER",
+                                style = MaterialTheme.typography.titleMedium.copy(
+                                    fontWeight = FontWeight.ExtraBold,
+                                    color = NaturalPrimary,
+                                    letterSpacing = 0.5.sp
+                                )
+                            )
+                            Text(
+                                text = "Auto-finds, extracts, and loads your save file without opening ZArchiver or browsing folders.",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = NaturalOnBackground.copy(alpha = 0.85f),
+                                    lineHeight = 16.sp
+                                )
+                            )
+                        }
+                    }
+
+                    // Main 1-Tap Auto-Find Button
+                    Button(
+                        onClick = onAutoFind,
                         modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(NaturalPrimaryContainer),
-                        contentAlignment = Alignment.Center
+                            .fillMaxWidth()
+                            .height(52.dp)
+                            .testTag("auto_find_bitlife_button"),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = NaturalPrimary,
+                            contentColor = NaturalOnPrimary
+                        ),
+                        enabled = !isBusy
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Folder,
+                            imageVector = Icons.Default.Bolt,
                             contentDescription = null,
-                            tint = NaturalPrimary,
-                            modifier = Modifier.size(22.dp)
+                            modifier = Modifier.size(20.dp)
                         )
-                    }
-                    Column {
+                        Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = "BitLife Save Slots & Files",
-                            style = MaterialTheme.typography.titleMedium.copy(
+                            text = if (isBusy) "SCANNING STORAGE..." else "⚡ AUTO-FIND & LOAD BITLIFE SAVE",
+                            style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
-                                color = NaturalOnBackground
-                            )
-                        )
-                        Text(
-                            text = if (scanResult.baseDirFound.isNotEmpty())
-                                scanResult.baseDirFound
-                            else
-                                "Scanning Android/data directory...",
-                            style = MaterialTheme.typography.bodySmall.copy(
-                                color = NaturalOnSurfaceVariant,
-                                fontSize = 11.sp,
-                                fontFamily = FontFamily.Monospace
+                                letterSpacing = 0.5.sp
                             )
                         )
                     }
-                }
 
-                IconButton(
-                    onClick = onScan,
-                    enabled = !isBusy,
-                    modifier = Modifier.testTag("rescan_bitlife_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Rescan",
-                        tint = NaturalPrimary
-                    )
+                    // Shizuku permission notice if not yet authorized
+                    if (!hasShizukuPermission) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = NaturalSecondaryContainer,
+                            border = androidx.compose.foundation.BorderStroke(1.dp, NaturalOutlineVariant)
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Shield,
+                                    contentDescription = null,
+                                    tint = NaturalPrimary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = "Grant Shizuku for 100% Zero-Touch Automation",
+                                        style = MaterialTheme.typography.labelMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = NaturalOnBackground
+                                        )
+                                    )
+                                    Text(
+                                        text = "Allows reading & writing Android/data directly without manual file picking.",
+                                        style = MaterialTheme.typography.bodySmall.copy(
+                                            fontSize = 11.sp,
+                                            color = NaturalOnSurfaceVariant
+                                        )
+                                    )
+                                }
+                                Button(
+                                    onClick = onRequestShizuku,
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = NaturalPrimary,
+                                        contentColor = NaturalOnPrimary
+                                    )
+                                ) {
+                                    Text("Grant", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                                }
+                            }
+                        }
+                    }
+
+                    // Status and Quick Actions based on loaded slot
+                    if (selectedSlot != null) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = NaturalSuccessContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = null,
+                                        tint = NaturalSuccess,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = "Auto-Loaded: ${selectedSlot.slotName}",
+                                            style = MaterialTheme.typography.labelMedium.copy(
+                                                fontWeight = FontWeight.Bold,
+                                                color = NaturalOnBackground
+                                            )
+                                        )
+                                        Text(
+                                            text = selectedSlot.characterSummary ?: selectedSlot.filePath,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                color = NaturalOnBackground.copy(alpha = 0.8f),
+                                                fontSize = 11.sp,
+                                                fontWeight = FontWeight.Medium
+                                            )
+                                        )
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    OutlinedButton(
+                                        onClick = onLaunchBitLife,
+                                        modifier = Modifier
+                                            .weight(1f)
+                                            .height(40.dp)
+                                            .testTag("launch_bitlife_app_button"),
+                                        shape = RoundedCornerShape(12.dp),
+                                        border = androidx.compose.foundation.BorderStroke(1.dp, NaturalPrimary)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.OpenInNew,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = NaturalPrimary
+                                        )
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            "Launch BitLife",
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 12.sp,
+                                            color = NaturalPrimary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    } else {
+                        // Instant Life Injector if no save exists yet
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = NaturalSecondaryContainer,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Text(
+                                    text = "Haven't created a character yet in BitLife?",
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = NaturalOnBackground
+                                    )
+                                )
+                                Text(
+                                    text = "1-tap generates and injects a maxed God Life ($10B cash, 100% stats, all DLCs) straight into the game files automatically!",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = NaturalOnSurfaceVariant,
+                                        fontSize = 11.sp
+                                    )
+                                )
+                                Button(
+                                    onClick = onAutoInjectGodLife,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .height(44.dp)
+                                        .testTag("auto_inject_god_life_button"),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = NaturalPrimary,
+                                        contentColor = NaturalOnPrimary
+                                    ),
+                                    enabled = !isBusy
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(18.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        "✨ Auto-Create & Inject God Life ($10B + All DLCs)",
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 12.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
-            // 3. SLOTS LIST & DETECTION STATUS
+            // 3. COLLAPSIBLE ADVANCED MANUAL PICKER (ZArchiver / SAF Fallback)
+            var showManualPicker by remember { mutableStateOf(false) }
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .testTag("manual_file_picker_accordion_card"),
+                shape = RoundedCornerShape(18.dp),
+                colors = CardDefaults.cardColors(containerColor = NaturalSecondaryContainer.copy(alpha = 0.6f)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, NaturalOutlineVariant)
+            ) {
+                Column(modifier = Modifier.padding(14.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showManualPicker = !showManualPicker },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FolderOpen,
+                                contentDescription = null,
+                                tint = NaturalOnSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "Manual File Selection (ZArchiver Fallback)",
+                                style = MaterialTheme.typography.labelMedium.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = NaturalOnBackground
+                                )
+                            )
+                        }
+                        Text(
+                            text = if (showManualPicker) "▲" else "▼",
+                            color = NaturalOnSurfaceVariant,
+                            fontSize = 13.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
+                    AnimatedVisibility(visible = showManualPicker) {
+                        Column(
+                            modifier = Modifier.padding(top = 12.dp),
+                            verticalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Text(
+                                text = "Optional fallback: If you prefer picking savedLife.data manually with ZArchiver or Android Files:",
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = NaturalOnSurfaceVariant,
+                                    fontSize = 11.sp
+                                )
+                            )
+
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Button(
+                                    onClick = onPickFile,
+                                    modifier = Modifier
+                                        .weight(1.2f)
+                                        .height(44.dp)
+                                        .testTag("pick_save_file_button"),
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = NaturalPrimary,
+                                        contentColor = NaturalOnPrimary
+                                    ),
+                                    enabled = !isBusy
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.FileOpen,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text("Pick File (ZArchiver)", fontWeight = FontWeight.Bold, fontSize = 11.sp)
+                                }
+
+                                OutlinedButton(
+                                    onClick = onLaunchZArchiver,
+                                    modifier = Modifier
+                                        .weight(0.9f)
+                                        .height(44.dp)
+                                        .testTag("launch_zarchiver_button"),
+                                    shape = RoundedCornerShape(12.dp),
+                                    border = androidx.compose.foundation.BorderStroke(1.dp, NaturalPrimary)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.OpenInNew,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        if (isZArchiverInstalled) "Open ZArchiver" else "Get ZArchiver",
+                                        fontWeight = FontWeight.SemiBold,
+                                        fontSize = 11.sp
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 4. DETECTED SLOTS LIST (if multiple slots detected)
             if (scanResult.availableSlots.isNotEmpty()) {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "SELECT YOUR ACTIVE LIFE / SAVE SLOT:",
-                        style = MaterialTheme.typography.labelSmall.copy(
-                            fontWeight = FontWeight.Bold,
-                            color = NaturalPrimary,
-                            letterSpacing = 0.5.sp
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(
+                            text = "ALL DETECTED SAVE SLOTS (${scanResult.availableSlots.size})",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = NaturalPrimary,
+                                letterSpacing = 0.5.sp
+                            )
                         )
-                    )
+                        IconButton(
+                            onClick = onScan,
+                            enabled = !isBusy,
+                            modifier = Modifier.size(28.dp).testTag("rescan_bitlife_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Refresh,
+                                contentDescription = "Rescan",
+                                tint = NaturalPrimary,
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
 
                     scanResult.availableSlots.forEach { slot ->
-                        val isSelected = selectedSlot?.filePath == slot.filePath
+                        val isSelected = selectedSlot?.filePath == slot.filePath || (selectedSlot?.isPickedFile == true && slot.isPickedFile)
                         Card(
                             onClick = { onSelectSlot(slot) },
                             shape = RoundedCornerShape(16.dp),
@@ -1306,7 +1728,7 @@ private fun BitLifeHeaderCard(
                                     modifier = Modifier.weight(1f)
                                 ) {
                                     Icon(
-                                        imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.AccountBalance,
+                                        imageVector = if (isSelected) Icons.Default.CheckCircle else if (slot.isPickedFile) Icons.Default.FileOpen else Icons.Default.AccountBalance,
                                         contentDescription = null,
                                         tint = if (isSelected) NaturalPrimary else NaturalOnSurfaceVariant,
                                         modifier = Modifier.size(24.dp)
@@ -1323,7 +1745,22 @@ private fun BitLifeHeaderCard(
                                                     color = if (isSelected) NaturalPrimary else NaturalOnBackground
                                                 )
                                             )
-                                            if (slot.isPrimaryActive) {
+                                            if (slot.isPickedFile) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = NaturalPrimaryContainer
+                                                ) {
+                                                    Text(
+                                                        text = "Picked File (ZArchiver)",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontSize = 9.sp,
+                                                            color = NaturalPrimary,
+                                                            fontWeight = FontWeight.Bold
+                                                        ),
+                                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            } else if (slot.isPrimaryActive) {
                                                 Surface(
                                                     shape = RoundedCornerShape(6.dp),
                                                     color = NaturalSuccessContainer
@@ -1420,7 +1857,7 @@ private fun BitLifeHeaderCard(
                 ) {
                     Column(
                         modifier = Modifier.padding(14.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                        verticalArrangement = Arrangement.spacedBy(10.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -1433,7 +1870,7 @@ private fun BitLifeHeaderCard(
                                 modifier = Modifier.size(20.dp)
                             )
                             Text(
-                                text = "No Started Life Detected Yet",
+                                text = "No Started Life Detected via Shizuku Scan",
                                 style = MaterialTheme.typography.titleSmall.copy(
                                     fontWeight = FontWeight.Bold,
                                     color = NaturalDanger
@@ -1441,13 +1878,30 @@ private fun BitLifeHeaderCard(
                             )
                         }
                         Text(
-                            text = "To start modding, simply launch BitLife, tap 'Start a New Life', make at least 1 choice (or age up once so BitLife generates savedLife.data), then switch back here and tap 'Rescan'.",
+                            text = "BitLife may not have created savedLife.data yet, or Shizuku did not find the directory. You can tap 'Select File (ZArchiver)' above to choose the file directly, or launch BitLife, age up once, and hit 'Rescan'.",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = NaturalOnBackground,
                                 fontSize = 12.sp,
                                 lineHeight = 16.sp
                             )
                         )
+
+                        Button(
+                            onClick = onPickFile,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(44.dp)
+                                .testTag("no_save_pick_file_button"),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = NaturalPrimary,
+                                contentColor = NaturalOnPrimary
+                            )
+                        ) {
+                            Icon(imageVector = Icons.Default.FileOpen, contentDescription = null, modifier = Modifier.size(16.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Select savedLife.data with ZArchiver / Files", fontWeight = FontWeight.Bold, fontSize = 12.sp)
+                        }
                     }
                 }
             }
