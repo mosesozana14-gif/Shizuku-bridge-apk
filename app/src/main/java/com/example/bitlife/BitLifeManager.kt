@@ -33,7 +33,19 @@ class BitLifeManager(
     companion object {
         const val BITLIFE_PACKAGE = "com.candywriter.bitlife"
         val ALL_BITLIFE_PACKAGES = listOf(
-            "com.candywriter.bitlife"
+            "com.candywriter.bitlife",
+            "com.goodgamestudios.bitlife.go.life.simulation",
+            "com.goodgamestudios.bitlife.de.deutsch.life.simulation",
+            "com.goodgamestudios.bitlife.es.espanol.simulador.de.vida",
+            "com.goodgamestudios.bitlife.br.portugues.simulacao.de.vida",
+            "com.goodgamestudios.bitlife.fr.francais.simulation.de.vie",
+            "com.candywriter.bitlifebr",
+            "com.candywriter.bitlifede",
+            "com.candywriter.bitlifees",
+            "com.candywriter.bitlifefr",
+            "com.candywriter.bitlifeit",
+            "com.candywriter.doglife",
+            "com.candywriter.catlife"
         )
         val SEARCH_PATHS = listOf(
             "/storage/emulated/0/Android/data/$BITLIFE_PACKAGE/files",
@@ -52,7 +64,71 @@ class BitLifeManager(
                 packageName = BITLIFE_PACKAGE,
                 iconName = "bitlife",
                 isAvailable = true,
-                description = "Custom stats, finances, relationships, social media & in-game cheats"
+                description = "God Mode, infinite cash, 100% stats, social media & in-game cheats"
+            ),
+            SupportedGame(
+                id = "bitlife_go",
+                name = "BitLife GO",
+                packageName = "com.goodgamestudios.bitlife.go.life.simulation",
+                iconName = "bitlife",
+                isAvailable = true,
+                description = "BitLife GO Edition (GoodGame Studios)"
+            ),
+            SupportedGame(
+                id = "bitlife_de_gg",
+                name = "BitLife DE (GoodGame)",
+                packageName = "com.goodgamestudios.bitlife.de.deutsch.life.simulation",
+                iconName = "bitlife",
+                isAvailable = true,
+                description = "BitLife German Edition"
+            ),
+            SupportedGame(
+                id = "bitlife_es_gg",
+                name = "BitLife ES (GoodGame)",
+                packageName = "com.goodgamestudios.bitlife.es.espanol.simulador.de.vida",
+                iconName = "bitlife",
+                isAvailable = true,
+                description = "BitLife Spanish Edition"
+            ),
+            SupportedGame(
+                id = "bitlife_br_gg",
+                name = "BitLife BR (GoodGame)",
+                packageName = "com.goodgamestudios.bitlife.br.portugues.simulacao.de.vida",
+                iconName = "bitlife",
+                isAvailable = true,
+                description = "BitLife Brazilian / Portuguese Edition"
+            ),
+            SupportedGame(
+                id = "bitlife_fr_gg",
+                name = "BitLife FR (GoodGame)",
+                packageName = "com.goodgamestudios.bitlife.fr.francais.simulation.de.vie",
+                iconName = "bitlife",
+                isAvailable = true,
+                description = "BitLife French Edition"
+            ),
+            SupportedGame(
+                id = "bitlife_br",
+                name = "BitLife BR / PT (Candywriter)",
+                packageName = "com.candywriter.bitlifebr",
+                iconName = "bitlife",
+                isAvailable = true,
+                description = "BitLife Brazilian Edition"
+            ),
+            SupportedGame(
+                id = "doglife",
+                name = "DogLife",
+                packageName = "com.candywriter.doglife",
+                iconName = "doglife",
+                isAvailable = true,
+                description = "DogLife Pet Life Simulator"
+            ),
+            SupportedGame(
+                id = "catlife",
+                name = "CatLife",
+                packageName = "com.candywriter.catlife",
+                iconName = "catlife",
+                isAvailable = true,
+                description = "CatLife Pet Life Simulator"
             )
         )
     }
@@ -126,22 +202,25 @@ class BitLifeManager(
             val writeMon = shizukuManager.executePrivilegedCommand("sh", "-c", "echo '$base64God' | base64 -d > '$monPath'")
             shizukuManager.executePrivilegedCommand("chmod", "660", monPath)
 
-            // 3. Generate max stats save file ($10 Billion, 100% stats, 18 yo)
+            // 3. Generate clean starting save file ($0 cash, 100% core attributes, 18 yo, mods default OFF)
             val initialStats = BitLifeStats(
                 happiness = 100,
                 health = 100,
                 smarts = 100,
                 looks = 100,
-                karma = 100,
-                fame = 100,
-                athleticism = 100,
-                discipline = 100,
-                willpower = 100,
-                jobPerformance = 100,
-                schoolGrades = 100,
+                karma = 50,
+                fame = 0,
+                athleticism = 50,
+                discipline = 50,
+                willpower = 50,
+                jobPerformance = 50,
+                schoolGrades = 50,
                 age = 18,
-                bankBalance = 10_000_000_000L,
-                salary = 2_500_000L
+                ageAtDeath = 100,
+                bankBalance = 0L,
+                salary = 0L,
+                socialStats = BitLifeSocialStats(),
+                powerUps = BitLifePowerUps()
             )
             val saveBytes = BitLifeSavePatcher.patchStats(ByteArray(0), initialStats)
             val base64Save = Base64.encodeToString(saveBytes, Base64.NO_WRAP)

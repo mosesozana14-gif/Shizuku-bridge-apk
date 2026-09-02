@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -43,7 +42,6 @@ import androidx.compose.material.icons.filled.Psychology
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Save
 import androidx.compose.material.icons.filled.School
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Star
@@ -293,12 +291,15 @@ fun BitLifeStatsEditorTab(
             BitLifeHeaderCard(
                 scanResult = scanResult,
                 selectedSlot = selectedSlot,
+                selectedGame = selectedGame,
                 isBusy = isBusy,
                 hasShizukuPermission = shizukuState.hasPermission,
                 onAutoFind = { viewModel.autoFindBitLife() },
+                onAutoInjectGodLife = { viewModel.autoInjectGodLife() },
                 onLaunchBitLife = { viewModel.launchBitLife() },
                 onRequestShizuku = { viewModel.requestShizukuPermission() },
                 onScan = { viewModel.scanBitLife() },
+                onSelectGame = { game -> viewModel.selectGame(game) },
                 onSelectSlot = { slot ->
                     viewModel.selectBitLifeSlot(slot)
                 },
@@ -336,60 +337,25 @@ fun BitLifeStatsEditorTab(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         PresetChip(
-                            label = "🔥 MAX EVERYTHING (All Stats + Mods + \$1B)",
+                            label = "🔄 Turn Off All & Reset to $0",
                             onClick = {
+                                val cleanSocial = com.example.bitlife.BitLifeSocialStats()
+                                val cleanPowerUps = com.example.bitlife.BitLifePowerUps()
                                 editableStats = editableStats.copy(
-                                    happiness = 100,
-                                    health = 100,
-                                    smarts = 100,
-                                    looks = 100,
-                                    jobPerformance = 100,
-                                    schoolGrades = 100,
-                                    karma = 100,
-                                    fame = 100,
-                                    athleticism = 100,
-                                    discipline = 100,
-                                    willpower = 100,
-                                    musicTalent = 100,
-                                    actingTalent = 100,
-                                    voiceTalent = 100,
-                                    streetSmarts = 100,
-                                    fertility = 100,
-                                    generosity = 100,
-                                    craziness = 0,
-                                    bankBalance = 1_000_000_000L,
-                                    salary = 10_000_000L,
-                                    ageAtDeath = 1000,
-                                    socialStats = editableStats.socialStats.copy(
-                                        youtubeSubscribers = 100_000_000L,
-                                        tiktokFollowers = 100_000_000L,
-                                        instagramFollowers = 100_000_000L,
-                                        twitterFollowers = 50_000_000L,
-                                        twitchFollowers = 25_000_000L,
-                                        isVerified = true,
-                                        viralBoost = true
-                                    ),
-                                    powerUps = editableStats.powerUps.copy(
-                                        lotteryAutoWin = true,
-                                        casino100Win = true,
-                                        crime100Success = true,
-                                        prisonEscape100 = true,
-                                        diseaseImmunity = true,
-                                        plasticSurgeryFlawless = true,
-                                        instantPromotionCEO = true,
-                                        heirloomsUnlocked = true,
-                                        fertilityTwinsTriplets = true,
-                                        unlimitedTimeMachine = true
-                                    )
+                                    bankBalance = 0L,
+                                    salary = 0L,
+                                    ageAtDeath = 100,
+                                    socialStats = cleanSocial,
+                                    powerUps = cleanPowerUps
                                 )
-                                moneyInput = "1000000000"
-                                salaryInput = "10000000"
-                                ageAtDeathInput = "1000"
-                                ytInput = "100000000"
-                                tiktokInput = "100000000"
-                                igInput = "100000000"
-                                xInput = "50000000"
-                                twitchInput = "25000000"
+                                moneyInput = "0"
+                                salaryInput = "0"
+                                ageAtDeathInput = "100"
+                                ytInput = "0"
+                                tiktokInput = "0"
+                                igInput = "0"
+                                xInput = "0"
+                                twitchInput = "0"
                             }
                         )
                         PresetChip(
@@ -1250,12 +1216,15 @@ private fun ToggleItemRow(
 private fun BitLifeHeaderCard(
     scanResult: BitLifeSaveScanResult,
     selectedSlot: BitLifeSlotInfo?,
+    selectedGame: com.example.bitlife.SupportedGame,
     isBusy: Boolean,
     hasShizukuPermission: Boolean,
     onAutoFind: () -> Unit,
+    onAutoInjectGodLife: () -> Unit,
     onLaunchBitLife: () -> Unit,
     onRequestShizuku: () -> Unit,
     onScan: () -> Unit,
+    onSelectGame: (com.example.bitlife.SupportedGame) -> Unit,
     onSelectSlot: (BitLifeSlotInfo) -> Unit,
     onPickFile: () -> Unit,
     onLaunchZArchiver: () -> Unit,
@@ -1273,63 +1242,91 @@ private fun BitLifeHeaderCard(
             modifier = Modifier.padding(20.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
-            // Target Package Info
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(10.dp)
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(38.dp)
-                            .clip(CircleShape)
-                            .background(NaturalPrimaryContainer),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.AutoAwesome,
-                            contentDescription = null,
-                            tint = NaturalPrimary,
-                            modifier = Modifier.size(20.dp)
-                        )
-                    }
-                    Column {
-                        Text(
-                            text = "BitLife - Life Simulator",
-                            style = MaterialTheme.typography.titleMedium.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = NaturalOnBackground
-                            )
-                        )
-                        Text(
-                            text = "Package: com.candywriter.bitlife",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                color = NaturalOnSurfaceVariant,
-                                fontSize = 11.sp
-                            )
-                        )
-                    }
-                }
-
-                IconButton(
-                    onClick = onScan,
-                    enabled = !isBusy
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Refresh,
-                        contentDescription = "Refresh Save Slots",
-                        tint = NaturalPrimary
+            // 1. GAME SELECTION ROW
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "SELECT TARGET GAME",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = NaturalPrimary,
+                        letterSpacing = 0.5.sp
                     )
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    com.example.bitlife.BitLifeManager.SUPPORTED_GAMES.forEach { game ->
+                        val isChosen = selectedGame.id == game.id
+                        Card(
+                            onClick = { onSelectGame(game) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isChosen) NaturalPrimaryContainer else NaturalSecondaryContainer
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.5.dp,
+                                if (isChosen) NaturalPrimary else NaturalOutlineVariant
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("select_game_${game.id}")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isChosen) NaturalPrimary else NaturalOutline),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = if (isChosen) NaturalOnPrimary else NaturalOnBackground,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = game.name,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isChosen) NaturalPrimary else NaturalOnBackground
+                                        )
+                                    )
+                                    Text(
+                                        text = "Target package: ${game.packageName}",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = NaturalOnSurfaceVariant,
+                                            fontSize = 10.sp
+                                        )
+                                    )
+                                }
+
+                                if (isChosen) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Selected",
+                                        tint = NaturalPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
 
             HorizontalDivider(color = NaturalOutlineVariant.copy(alpha = 0.5f))
 
-            // Load / Scan BitLife Save Action
+            // 2. HERO: 100% AUTOMATIC INJECTOR & INSTANT UNLOCK
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1362,7 +1359,7 @@ private fun BitLifeHeaderCard(
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "⚡ BITLIFE SAVE SYNC",
+                                text = "⚡ AUTOMATIC 1-TAP INJECTOR",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.ExtraBold,
                                     color = NaturalPrimary,
@@ -1370,7 +1367,7 @@ private fun BitLifeHeaderCard(
                                 )
                             )
                             Text(
-                                text = "Load your active life to customize stats, finances, and power-up mods below.",
+                                text = "Instantly writes God Mode, all DLCs & max stats directly into BitLife's directory.",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = NaturalOnBackground.copy(alpha = 0.85f),
                                     lineHeight = 16.sp
@@ -1379,13 +1376,13 @@ private fun BitLifeHeaderCard(
                         }
                     }
 
-                    // Main Auto-Load / Scan Button
+                    // Main 1-Tap Auto-Inject Button
                     Button(
-                        onClick = onAutoFind,
+                        onClick = onAutoInjectGodLife,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(50.dp)
-                            .testTag("auto_find_bitlife_button"),
+                            .height(52.dp)
+                            .testTag("auto_inject_god_life_button"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = NaturalPrimary,
@@ -1394,13 +1391,13 @@ private fun BitLifeHeaderCard(
                         enabled = !isBusy
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Search,
+                            imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isBusy) "SCANNING STORAGE..." else "🔄 LOAD ACTIVE BITLIFE SAVE",
+                            text = if (isBusy) "INJECTING INTO BITLIFE..." else "⚡ INJECT & UNLOCK ALL INTO BITLIFE",
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.5.sp
@@ -1430,14 +1427,14 @@ private fun BitLifeHeaderCard(
                                 )
                                 Column(modifier = Modifier.weight(1f)) {
                                     Text(
-                                        text = "Grant Shizuku for Direct Storage Access",
+                                        text = "Grant Shizuku for 100% Zero-Touch Automation",
                                         style = MaterialTheme.typography.labelMedium.copy(
                                             fontWeight = FontWeight.Bold,
                                             color = NaturalOnBackground
                                         )
                                     )
                                     Text(
-                                        text = "Allows reading & writing Android/data without manual file picker.",
+                                        text = "Allows reading & writing Android/data directly without manual file picking.",
                                         style = MaterialTheme.typography.bodySmall.copy(
                                             fontSize = 11.sp,
                                             color = NaturalOnSurfaceVariant
@@ -1446,20 +1443,17 @@ private fun BitLifeHeaderCard(
                                 }
                                 Button(
                                     onClick = onRequestShizuku,
+                                    shape = RoundedCornerShape(10.dp),
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = NaturalPrimary,
                                         contentColor = NaturalOnPrimary
-                                    ),
-                                    shape = RoundedCornerShape(10.dp),
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 6.dp)
+                                    )
                                 ) {
                                     Text("Grant", fontSize = 11.sp, fontWeight = FontWeight.Bold)
                                 }
                             }
                         }
                     }
-                }
-            }
 
                     // Status and Quick Actions based on loaded slot
                     if (selectedSlot != null) {
@@ -1557,6 +1551,8 @@ private fun BitLifeHeaderCard(
                             )
                         }
                     }
+                }
+            }
 
             // 3. COLLAPSIBLE ADVANCED MANUAL PICKER (ZArchiver / SAF Fallback)
             var showManualPicker by remember { mutableStateOf(false) }

@@ -23,27 +23,27 @@ data class SupportedGame(
 )
 
 data class BitLifeSocialStats(
-    val youtubeSubscribers: Long = 10_000_000L,
-    val tiktokFollowers: Long = 5_000_000L,
-    val instagramFollowers: Long = 8_000_000L,
-    val twitterFollowers: Long = 3_000_000L,
-    val twitchFollowers: Long = 1_500_000L,
-    val isVerified: Boolean = true,
-    val viralBoost: Boolean = true
+    val youtubeSubscribers: Long = 0L,
+    val tiktokFollowers: Long = 0L,
+    val instagramFollowers: Long = 0L,
+    val twitterFollowers: Long = 0L,
+    val twitchFollowers: Long = 0L,
+    val isVerified: Boolean = false,
+    val viralBoost: Boolean = false
 )
 
 data class BitLifePowerUps(
-    val lotteryAutoWin: Boolean = true,
-    val casino100Win: Boolean = true,
-    val crime100Success: Boolean = true,
-    val prisonEscape100: Boolean = true,
-    val diseaseImmunity: Boolean = true,
-    val plasticSurgeryFlawless: Boolean = true,
-    val instantPromotionCEO: Boolean = true,
-    val heirloomsUnlocked: Boolean = true,
-    val fertilityTwinsTriplets: Boolean = true,
-    val unlimitedTimeMachine: Boolean = true,
-    val royaltyRank: String = "Prince" // None, Prince, King, Emperor, Duke
+    val lotteryAutoWin: Boolean = false,
+    val casino100Win: Boolean = false,
+    val crime100Success: Boolean = false,
+    val prisonEscape100: Boolean = false,
+    val diseaseImmunity: Boolean = false,
+    val plasticSurgeryFlawless: Boolean = false,
+    val instantPromotionCEO: Boolean = false,
+    val heirloomsUnlocked: Boolean = false,
+    val fertilityTwinsTriplets: Boolean = false,
+    val unlimitedTimeMachine: Boolean = false,
+    val royaltyRank: String = "None" // None, Prince, King, Emperor, Duke
 )
 
 data class BitLifeStats(
@@ -54,28 +54,28 @@ data class BitLifeStats(
     val looks: Int = 100,
 
     // Hidden / Secondary Attributes (0 - 100)
-    val karma: Int = 100,
-    val fame: Int = 100,
-    val athleticism: Int = 100,
-    val discipline: Int = 100,
+    val karma: Int = 50,
+    val fame: Int = 0,
+    val athleticism: Int = 50,
+    val discipline: Int = 50,
     val craziness: Int = 0,
-    val willpower: Int = 100,
-    val musicTalent: Int = 100,
-    val actingTalent: Int = 100,
-    val voiceTalent: Int = 100,
-    val streetSmarts: Int = 100,
-    val fertility: Int = 100,
-    val generosity: Int = 100,
+    val willpower: Int = 50,
+    val musicTalent: Int = 0,
+    val actingTalent: Int = 0,
+    val voiceTalent: Int = 0,
+    val streetSmarts: Int = 0,
+    val fertility: Int = 50,
+    val generosity: Int = 50,
 
     // Longevity & Age
     val age: Int = 20,
-    val ageAtDeath: Int = 1000, // Lifespan / Immortality
+    val ageAtDeath: Int = 100, // Standard Lifespan (not 1000)
 
     // Finances & Career
-    val bankBalance: Long = 100_000_000L,
-    val salary: Long = 1_000_000L,
-    val jobPerformance: Int = 100,
-    val schoolGrades: Int = 100,
+    val bankBalance: Long = 0L, // 0 cash by default so player sets custom amount
+    val salary: Long = 0L,
+    val jobPerformance: Int = 50,
+    val schoolGrades: Int = 50,
 
     // Moses Mod Menu Features
     val socialStats: BitLifeSocialStats = BitLifeSocialStats(),
