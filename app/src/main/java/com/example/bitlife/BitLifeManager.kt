@@ -33,19 +33,7 @@ class BitLifeManager(
     companion object {
         const val BITLIFE_PACKAGE = "com.candywriter.bitlife"
         val ALL_BITLIFE_PACKAGES = listOf(
-            "com.candywriter.bitlife",
-            "com.goodgamestudios.bitlife.go.life.simulation",
-            "com.goodgamestudios.bitlife.de.deutsch.life.simulation",
-            "com.goodgamestudios.bitlife.es.espanol.simulador.de.vida",
-            "com.goodgamestudios.bitlife.br.portugues.simulacao.de.vida",
-            "com.goodgamestudios.bitlife.fr.francais.simulation.de.vie",
-            "com.candywriter.bitlifebr",
-            "com.candywriter.bitlifede",
-            "com.candywriter.bitlifees",
-            "com.candywriter.bitlifefr",
-            "com.candywriter.bitlifeit",
-            "com.candywriter.doglife",
-            "com.candywriter.catlife"
+            "com.candywriter.bitlife"
         )
         val SEARCH_PATHS = listOf(
             "/storage/emulated/0/Android/data/$BITLIFE_PACKAGE/files",
@@ -64,71 +52,7 @@ class BitLifeManager(
                 packageName = BITLIFE_PACKAGE,
                 iconName = "bitlife",
                 isAvailable = true,
-                description = "God Mode, infinite cash, 100% stats, social media & in-game cheats"
-            ),
-            SupportedGame(
-                id = "bitlife_go",
-                name = "BitLife GO",
-                packageName = "com.goodgamestudios.bitlife.go.life.simulation",
-                iconName = "bitlife",
-                isAvailable = true,
-                description = "BitLife GO Edition (GoodGame Studios)"
-            ),
-            SupportedGame(
-                id = "bitlife_de_gg",
-                name = "BitLife DE (GoodGame)",
-                packageName = "com.goodgamestudios.bitlife.de.deutsch.life.simulation",
-                iconName = "bitlife",
-                isAvailable = true,
-                description = "BitLife German Edition"
-            ),
-            SupportedGame(
-                id = "bitlife_es_gg",
-                name = "BitLife ES (GoodGame)",
-                packageName = "com.goodgamestudios.bitlife.es.espanol.simulador.de.vida",
-                iconName = "bitlife",
-                isAvailable = true,
-                description = "BitLife Spanish Edition"
-            ),
-            SupportedGame(
-                id = "bitlife_br_gg",
-                name = "BitLife BR (GoodGame)",
-                packageName = "com.goodgamestudios.bitlife.br.portugues.simulacao.de.vida",
-                iconName = "bitlife",
-                isAvailable = true,
-                description = "BitLife Brazilian / Portuguese Edition"
-            ),
-            SupportedGame(
-                id = "bitlife_fr_gg",
-                name = "BitLife FR (GoodGame)",
-                packageName = "com.goodgamestudios.bitlife.fr.francais.simulation.de.vie",
-                iconName = "bitlife",
-                isAvailable = true,
-                description = "BitLife French Edition"
-            ),
-            SupportedGame(
-                id = "bitlife_br",
-                name = "BitLife BR / PT (Candywriter)",
-                packageName = "com.candywriter.bitlifebr",
-                iconName = "bitlife",
-                isAvailable = true,
-                description = "BitLife Brazilian Edition"
-            ),
-            SupportedGame(
-                id = "doglife",
-                name = "DogLife",
-                packageName = "com.candywriter.doglife",
-                iconName = "doglife",
-                isAvailable = true,
-                description = "DogLife Pet Life Simulator"
-            ),
-            SupportedGame(
-                id = "catlife",
-                name = "CatLife",
-                packageName = "com.candywriter.catlife",
-                iconName = "catlife",
-                isAvailable = true,
-                description = "CatLife Pet Life Simulator"
+                description = "Custom stats, finances, relationships, social media & in-game cheats"
             )
         )
     }
