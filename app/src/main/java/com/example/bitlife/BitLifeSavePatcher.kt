@@ -378,72 +378,64 @@ object BitLifeSavePatcher {
     /**
      * Generates a fully unlocked MonetizationVars payload unlocking EVERY expansion, pack, perk and item in BitLife history.
      */
+    /**
+     * Generates MonetizationVars payload with ALL God Mode, Bitizenship, and DLC flags.
+     * Generates a clean JSON structure and dual fallback key-values compatible with modern BitLife.
+     */
     fun generateGodModeMonetizationVars(): ByteArray {
-        val allPurchases = listOf(
-            // Core Memberships & God Tools
-            "Bitizen" to "true",
-            "Bitizenship" to "true",
-            "GodMode" to "true",
-            "BossMode" to "true",
-            "UnlimitedTimeMachine" to "true",
-            "TimeMachine" to "true",
-            "ChallengeVault" to "true",
-            "SuperstarVIP" to "true",
-            "NoAds" to "true",
-            "RemoveAds" to "true",
-            "StreakSaver" to "true",
-            "CelebrityDatingApp" to "true",
-
-            // Global Items & Equipment
-            "GoldenPassport" to "true",
-            "HollywoodStar" to "true",
-            "AssassinBlade" to "true",
-            "AssassinsBlade" to "true",
-            "BrassKnuckles" to "true",
-            "GoldenWrench" to "true",
-            "GoldenDiploma" to "true",
-            "GoldenResume" to "true",
-            "PromisingInstrument" to "true",
-            "HolyGrailItem" to "true",
-
-            // All Expansion Packs
-            "LandlordExpansion" to "true",
-            "CultExpansion" to "true",
-            "BlackMarketExpansion" to "true",
-            "ZooExpansion" to "true",
-            "SecretAgentExpansion" to "true",
-            "SecretAgentJobPack" to "true",
-            "ModelJobPack" to "true",
-            "DealerJobPack" to "true",
-            "WeedDispensaryExpansion" to "true",
-            "VampireJobPack" to "true",
-
-            // All Career & Job Packs
-            "ActorJobPack" to "true",
-            "MusicianJobPack" to "true",
-            "AthleteJobPack" to "true",
-            "ProAthleteJobPack" to "true",
-            "PoliticianJobPack" to "true",
-            "BusinessJobPack" to "true",
-            "StreetHustlerJobPack" to "true",
-            "MafiaJobPack" to "true",
-            "AstronautJobPack" to "true",
-
-            // Custom & VIP Flags
-            "AllJobPacksUnlocked" to "true",
-            "AllExpansionsUnlocked" to "true",
-            "AllItemsUnlocked" to "true",
-            "MosesModMasterKey" to "true",
-            "GodModeAllNPCs" to "true"
+        val keys = listOf(
+            "Bitizen",
+            "Bitizenship",
+            "GodMode",
+            "BossMode",
+            "UnlimitedTimeMachine",
+            "TimeMachine",
+            "ChallengeVault",
+            "SuperstarVIP",
+            "NoAds",
+            "RemoveAds",
+            "StreakSaver",
+            "CelebrityDatingApp",
+            "GoldenPassport",
+            "HollywoodStar",
+            "AssassinBlade",
+            "AssassinsBlade",
+            "BrassKnuckles",
+            "GoldenWrench",
+            "GoldenDiploma",
+            "GoldenResume",
+            "PromisingInstrument",
+            "HolyGrailItem",
+            "LandlordExpansion",
+            "CultExpansion",
+            "BlackMarketExpansion",
+            "ZooExpansion",
+            "SecretAgentExpansion",
+            "SecretAgentJobPack",
+            "ModelJobPack",
+            "DealerJobPack",
+            "WeedDispensaryExpansion",
+            "VampireJobPack",
+            "ActorJobPack",
+            "MusicianJobPack",
+            "AthleteJobPack",
+            "ProAthleteJobPack",
+            "PoliticianJobPack",
+            "BusinessJobPack",
+            "StreetHustlerJobPack",
+            "MafiaJobPack",
+            "AstronautJobPack",
+            "AllJobPacksUnlocked",
+            "AllExpansionsUnlocked",
+            "AllItemsUnlocked",
+            "GodModeAllNPCs"
         )
 
-        // Generates clean multi-line key=value + JSON hybrid structure acceptable by BitLife engine
-        val sb = StringBuilder()
-        for ((k, v) in allPurchases) {
-            sb.append("$k=$v\n")
-        }
+        // Generate JSON dictionary format: {"Bitizen":true,"Bitizenship":true,...}
+        val jsonEntries = keys.joinToString(",") { "\"$it\":true" }
+        val jsonPayload = "{$jsonEntries}"
 
-        return sb.toString().toByteArray(StandardCharsets.UTF_8)
+        return jsonPayload.toByteArray(StandardCharsets.UTF_8)
     }
 
     /**

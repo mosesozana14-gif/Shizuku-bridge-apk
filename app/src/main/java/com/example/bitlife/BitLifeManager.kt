@@ -30,8 +30,27 @@ class BitLifeManager(
         val SEARCH_PATHS = listOf(
             "/storage/emulated/0/Android/data/$BITLIFE_PACKAGE/files",
             "/sdcard/Android/data/$BITLIFE_PACKAGE/files",
-            "/data/data/$BITLIFE_PACKAGE/files"
+            "/data/data/$BITLIFE_PACKAGE/files",
+            "/data/user/0/$BITLIFE_PACKAGE/files"
         )
+
+        val SUPPORTED_GAMES = listOf(
+            SupportedGame(
+                id = "bitlife",
+                name = "BitLife - Life Simulator",
+                packageName = BITLIFE_PACKAGE,
+                iconName = "bitlife",
+                isAvailable = true,
+                description = "God Mode, infinite cash, 100% stats, social media & in-game cheats"
+            )
+        )
+    }
+
+    private val _selectedGame = MutableStateFlow(SUPPORTED_GAMES.first())
+    val selectedGame: StateFlow<SupportedGame> = _selectedGame.asStateFlow()
+
+    fun selectGame(game: SupportedGame) {
+        _selectedGame.value = game
     }
 
     suspend fun scanBitLifeFiles(): BitLifeSaveScanResult = withContext(Dispatchers.IO) {
@@ -57,41 +76,84 @@ class BitLifeManager(
             val monCheck = shizukuManager.executePrivilegedCommand("ls", "$foundBaseDir/MonetizationVars")
             hasMonetization = monCheck.isSuccess && !monCheck.output.contains("No such file")
 
-            // Check root savedLife.data
-            val rootSave = shizukuManager.executePrivilegedCommand("ls", "-la", "$foundBaseDir/savedLife.data")
-            if (rootSave.isSuccess && !rootSave.output.contains("No such file")) {
-                detectedSlots.add(
-                    BitLifeSlotInfo(
-                        slotName = "Main Save (Root)",
-                        filePath = "$foundBaseDir/savedLife.data"
-                    )
-                )
-            }
-
-            // Check sg* directories (sg1, sg2, sg3, sg4, sg5...)
-            val listSlots = shizukuManager.executePrivilegedCommand("ls", "-d", "$foundBaseDir/sg*")
+            // Scan all possible slot directories: sg* (sg1, sg2, sg3...), slot*, saves*, etc.
+            val listSlots = shizukuManager.executePrivilegedCommand("sh", "-c", "ls -d $foundBaseDir/sg* $foundBaseDir/slot* 2>/dev/null")
             if (listSlots.isSuccess && listSlots.output.isNotBlank()) {
                 val lines = listSlots.output.lines()
                 for (line in lines) {
                     val dirPath = line.trim()
-                    if (dirPath.isBlank()) continue
+                    if (dirPath.isBlank() || dirPath.contains("No such file")) continue
                     val slotName = dirPath.substringAfterLast("/")
                     val primarySavePath = "$dirPath/savedLife.data"
 
+                    // Check if primary save file exists
+                    val checkSave = shizukuManager.executePrivilegedCommand("ls", "-la", primarySavePath)
+                    val exists = checkSave.isSuccess && !checkSave.output.contains("No such file")
+
                     // Find all age files in this slot
-                    val ageFilesRes = shizukuManager.executePrivilegedCommand("ls", "$dirPath/savedLife-age*.data")
+                    val ageFilesRes = shizukuManager.executePrivilegedCommand("sh", "-c", "ls $dirPath/savedLife-age*.data 2>/dev/null")
                     val ageFiles = if (ageFilesRes.isSuccess) {
-                        ageFilesRes.output.lines().filter { it.isNotBlank() }
+                        ageFilesRes.output.lines().filter { it.isNotBlank() && !it.contains("No such file") }
                     } else emptyList()
 
-                    detectedSlots.add(
-                        BitLifeSlotInfo(
-                            slotName = "Slot $slotName",
-                            filePath = primarySavePath,
-                            ageDataFiles = ageFiles
+                    if (exists || ageFiles.isNotEmpty()) {
+                        // Extract preview metadata if possible
+                        var summary = "Character Slot ($slotName)"
+                        var fSize = 0L
+                        val targetToInspect = if (exists) primarySavePath else ageFiles.firstOrNull() ?: ""
+                        if (targetToInspect.isNotEmpty()) {
+                            val headRes = shizukuManager.executePrivilegedCommand("base64", targetToInspect)
+                            if (headRes.isSuccess && headRes.output.isNotBlank()) {
+                                try {
+                                    val clean = headRes.output.replace("\n", "").replace("\r", "")
+                                    val raw = Base64.decode(clean, Base64.DEFAULT)
+                                    fSize = raw.size.toLong()
+                                    val pStats = BitLifeSavePatcher.parseStats(raw)
+                                    summary = "Age ${pStats.age} • $${formatCompactNumber(pStats.bankBalance)} • ${pStats.health}% Health"
+                                } catch (_: Exception) {}
+                            }
+                        }
+
+                        detectedSlots.add(
+                            BitLifeSlotInfo(
+                                slotName = "Slot $slotName",
+                                filePath = primarySavePath,
+                                ageDataFiles = ageFiles,
+                                fileSize = fSize,
+                                characterSummary = summary,
+                                isPrimaryActive = detectedSlots.isEmpty()
+                            )
                         )
-                    )
+                    }
                 }
+            }
+
+            // Check root savedLife.data as well
+            val rootSave = shizukuManager.executePrivilegedCommand("ls", "-la", "$foundBaseDir/savedLife.data")
+            if (rootSave.isSuccess && !rootSave.output.contains("No such file")) {
+                var summary = "Active Life (Root)"
+                var fSize = 0L
+                val headRes = shizukuManager.executePrivilegedCommand("base64", "$foundBaseDir/savedLife.data")
+                if (headRes.isSuccess && headRes.output.isNotBlank()) {
+                    try {
+                        val clean = headRes.output.replace("\n", "").replace("\r", "")
+                        val raw = Base64.decode(clean, Base64.DEFAULT)
+                        fSize = raw.size.toLong()
+                        val pStats = BitLifeSavePatcher.parseStats(raw)
+                        summary = "Age ${pStats.age} • $${formatCompactNumber(pStats.bankBalance)} • ${pStats.health}% Health"
+                    } catch (_: Exception) {}
+                }
+
+                detectedSlots.add(
+                    0, // Prioritize root save if present
+                    BitLifeSlotInfo(
+                        slotName = "Main Save (Active Life)",
+                        filePath = "$foundBaseDir/savedLife.data",
+                        fileSize = fSize,
+                        characterSummary = summary,
+                        isPrimaryActive = true
+                    )
+                )
             }
         }
 
@@ -100,17 +162,35 @@ class BitLifeManager(
             baseDirFound = foundBaseDir,
             availableSlots = detectedSlots,
             hasMonetizationVars = hasMonetization,
-            error = if (foundBaseDir.isEmpty() && !isInstalled) "BitLife is not detected on this device." else ""
+            error = if (foundBaseDir.isEmpty() && !isInstalled) "BitLife is not detected on this device. Please install BitLife first." else ""
         )
 
         _scanResult.value = result
-        if (detectedSlots.isNotEmpty() && _selectedSlot.value == null) {
-            _selectedSlot.value = detectedSlots.first()
-            loadStatsFromSlot(detectedSlots.first())
+
+        // Respect user's explicit selection: only default if none selected or previous selection no longer exists
+        val currentSel = _selectedSlot.value
+        if (currentSel == null || detectedSlots.none { it.filePath == currentSel.filePath }) {
+            if (detectedSlots.isNotEmpty()) {
+                val bestSlot = detectedSlots.first()
+                _selectedSlot.value = bestSlot
+                loadStatsFromSlot(bestSlot)
+            } else {
+                _selectedSlot.value = null
+            }
         }
 
         _isBusy.value = false
         result
+    }
+
+    private fun formatCompactNumber(amount: Long): String {
+        return when {
+            amount >= 1_000_000_000_000L -> String.format("%.1fT", amount / 1_000_000_000_000.0)
+            amount >= 1_000_000_000L -> String.format("%.1fB", amount / 1_000_000_000.0)
+            amount >= 1_000_000L -> String.format("%.1fM", amount / 1_000_000.0)
+            amount >= 1_000L -> String.format("%.1fK", amount / 1_000.0)
+            else -> amount.toString()
+        }
     }
 
     fun selectSlot(slot: BitLifeSlotInfo) {

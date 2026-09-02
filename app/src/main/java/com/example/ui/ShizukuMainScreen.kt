@@ -61,6 +61,7 @@ fun ShizukuMainScreen(viewModel: MainViewModel) {
     val bitLifeScanResult by viewModel.bitLifeScanResult.collectAsStateWithLifecycle()
     val bitLifeStats by viewModel.bitLifeStats.collectAsStateWithLifecycle()
     val bitLifeSelectedSlot by viewModel.bitLifeSelectedSlot.collectAsStateWithLifecycle()
+    val selectedGame by viewModel.selectedGame.collectAsStateWithLifecycle()
     val consoleLogs by viewModel.consoleLogs.collectAsStateWithLifecycle()
     val isBusy by viewModel.isBusy.collectAsStateWithLifecycle()
 
@@ -143,6 +144,7 @@ fun ShizukuMainScreen(viewModel: MainViewModel) {
                         scanResult = bitLifeScanResult,
                         currentStats = bitLifeStats,
                         selectedSlot = bitLifeSelectedSlot,
+                        selectedGame = selectedGame,
                         isBusy = isBusy
                     )
                 }

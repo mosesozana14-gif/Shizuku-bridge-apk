@@ -51,6 +51,7 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -111,6 +112,7 @@ fun BitLifeStatsEditorTab(
     scanResult: BitLifeSaveScanResult,
     currentStats: BitLifeStats,
     selectedSlot: BitLifeSlotInfo?,
+    selectedGame: com.example.bitlife.SupportedGame,
     isBusy: Boolean,
     modifier: Modifier = Modifier
 ) {
@@ -246,8 +248,10 @@ fun BitLifeStatsEditorTab(
             BitLifeHeaderCard(
                 scanResult = scanResult,
                 selectedSlot = selectedSlot,
+                selectedGame = selectedGame,
                 isBusy = isBusy,
                 onScan = { viewModel.scanBitLife() },
+                onSelectGame = { game -> viewModel.selectGame(game) },
                 onSelectSlot = { slot ->
                     viewModel.selectBitLifeSlot(slot)
                 }
@@ -1100,8 +1104,10 @@ private fun ToggleItemRow(
 private fun BitLifeHeaderCard(
     scanResult: BitLifeSaveScanResult,
     selectedSlot: BitLifeSlotInfo?,
+    selectedGame: com.example.bitlife.SupportedGame,
     isBusy: Boolean,
     onScan: () -> Unit,
+    onSelectGame: (com.example.bitlife.SupportedGame) -> Unit,
     onSelectSlot: (BitLifeSlotInfo) -> Unit
 ) {
     Card(
@@ -1114,8 +1120,93 @@ private fun BitLifeHeaderCard(
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            // 1. GAME SELECTION ROW
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Text(
+                    text = "SELECT TARGET GAME",
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = NaturalPrimary,
+                        letterSpacing = 0.5.sp
+                    )
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    com.example.bitlife.BitLifeManager.SUPPORTED_GAMES.forEach { game ->
+                        val isChosen = selectedGame.id == game.id
+                        Card(
+                            onClick = { onSelectGame(game) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isChosen) NaturalPrimaryContainer else NaturalSecondaryContainer
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(
+                                1.5.dp,
+                                if (isChosen) NaturalPrimary else NaturalOutlineVariant
+                            ),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("select_game_${game.id}")
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(10.dp)
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(if (isChosen) NaturalPrimary else NaturalOutline),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.AutoAwesome,
+                                        contentDescription = null,
+                                        tint = if (isChosen) NaturalOnPrimary else NaturalOnBackground,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(
+                                        text = game.name,
+                                        style = MaterialTheme.typography.bodyMedium.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = if (isChosen) NaturalPrimary else NaturalOnBackground
+                                        )
+                                    )
+                                    Text(
+                                        text = "Target package: ${game.packageName}",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            color = NaturalOnSurfaceVariant,
+                                            fontSize = 10.sp
+                                        )
+                                    )
+                                }
+
+                                if (isChosen) {
+                                    Icon(
+                                        imageVector = Icons.Default.CheckCircle,
+                                        contentDescription = "Selected",
+                                        tint = NaturalPrimary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            HorizontalDivider(color = NaturalOutlineVariant.copy(alpha = 0.5f))
+
+            // 2. SCAN HEADER & RESCAN
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 verticalAlignment = Alignment.CenterVertically,
@@ -1127,7 +1218,7 @@ private fun BitLifeHeaderCard(
                 ) {
                     Box(
                         modifier = Modifier
-                            .size(42.dp)
+                            .size(38.dp)
                             .clip(CircleShape)
                             .background(NaturalPrimaryContainer),
                         contentAlignment = Alignment.Center
@@ -1136,19 +1227,22 @@ private fun BitLifeHeaderCard(
                             imageVector = Icons.Default.Folder,
                             contentDescription = null,
                             tint = NaturalPrimary,
-                            modifier = Modifier.size(24.dp)
+                            modifier = Modifier.size(22.dp)
                         )
                     }
                     Column {
                         Text(
-                            text = "BitLife Save Slots",
+                            text = "BitLife Save Slots & Files",
                             style = MaterialTheme.typography.titleMedium.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = NaturalOnBackground
                             )
                         )
                         Text(
-                            text = if (scanResult.baseDirFound.isNotEmpty()) "Save path: ${scanResult.baseDirFound.takeLast(32)}" else "Scanning for BitLife data...",
+                            text = if (scanResult.baseDirFound.isNotEmpty())
+                                scanResult.baseDirFound
+                            else
+                                "Scanning Android/data directory...",
                             style = MaterialTheme.typography.bodySmall.copy(
                                 color = NaturalOnSurfaceVariant,
                                 fontSize = 11.sp,
@@ -1171,59 +1265,191 @@ private fun BitLifeHeaderCard(
                 }
             }
 
+            // 3. SLOTS LIST & DETECTION STATUS
             if (scanResult.availableSlots.isNotEmpty()) {
-                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "SELECT ACTIVE CHARACTER SLOT:",
+                        text = "SELECT YOUR ACTIVE LIFE / SAVE SLOT:",
                         style = MaterialTheme.typography.labelSmall.copy(
                             fontWeight = FontWeight.Bold,
-                            color = NaturalOnSurfaceVariant,
-                            fontSize = 10.sp
+                            color = NaturalPrimary,
+                            letterSpacing = 0.5.sp
                         )
                     )
-                    FlowRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        scanResult.availableSlots.forEach { slot ->
-                            val isSelected = selectedSlot?.filePath == slot.filePath
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { onSelectSlot(slot) },
-                                shape = RoundedCornerShape(14.dp),
-                                label = {
-                                    Text(
-                                        text = slot.slotName,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+
+                    scanResult.availableSlots.forEach { slot ->
+                        val isSelected = selectedSlot?.filePath == slot.filePath
+                        Card(
+                            onClick = { onSelectSlot(slot) },
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(
+                                containerColor = if (isSelected) NaturalPrimaryContainer else NaturalSecondaryContainer
+                            ),
+                            border = androidx.compose.foundation.BorderStroke(
+                                if (isSelected) 1.5.dp else 1.dp,
+                                if (isSelected) NaturalPrimary else NaturalOutlineVariant
+                            ),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .testTag("slot_chip_${slot.slotName.replace(" ", "_")}")
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = 16.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                    modifier = Modifier.weight(1f)
+                                ) {
+                                    Icon(
+                                        imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.AccountBalance,
+                                        contentDescription = null,
+                                        tint = if (isSelected) NaturalPrimary else NaturalOnSurfaceVariant,
+                                        modifier = Modifier.size(24.dp)
                                     )
-                                },
-                                leadingIcon = if (isSelected) {
-                                    {
-                                        Icon(
-                                            imageVector = Icons.Default.Check,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp)
+                                    Column {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                                        ) {
+                                            Text(
+                                                text = slot.slotName,
+                                                style = MaterialTheme.typography.bodyMedium.copy(
+                                                    fontWeight = FontWeight.Bold,
+                                                    color = if (isSelected) NaturalPrimary else NaturalOnBackground
+                                                )
+                                            )
+                                            if (slot.isPrimaryActive) {
+                                                Surface(
+                                                    shape = RoundedCornerShape(6.dp),
+                                                    color = NaturalSuccessContainer
+                                                ) {
+                                                    Text(
+                                                        text = "Active Life",
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontSize = 9.sp,
+                                                            color = NaturalSuccess,
+                                                            fontWeight = FontWeight.Bold
+                                                        ),
+                                                        modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+
+                                        Text(
+                                            text = slot.characterSummary,
+                                            style = MaterialTheme.typography.bodySmall.copy(
+                                                color = NaturalOnSurfaceVariant,
+                                                fontSize = 12.sp
+                                            )
                                         )
+
+                                        if (slot.ageDataFiles.isNotEmpty()) {
+                                            Text(
+                                                text = "+ ${slot.ageDataFiles.size} previous age autosaves linked",
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    color = NaturalPrimary.copy(alpha = 0.8f),
+                                                    fontSize = 10.sp
+                                                )
+                                            )
+                                        }
                                     }
-                                } else null,
-                                colors = FilterChipDefaults.filterChipColors(
-                                    containerColor = NaturalSecondaryContainer,
-                                    selectedContainerColor = NaturalPrimaryContainer,
-                                    labelColor = NaturalOnBackground,
-                                    selectedLabelColor = NaturalPrimary
-                                )
+                                }
+
+                                if (isSelected) {
+                                    Text(
+                                        text = "SELECTED",
+                                        style = MaterialTheme.typography.labelSmall.copy(
+                                            fontWeight = FontWeight.Bold,
+                                            color = NaturalPrimary
+                                        )
+                                    )
+                                }
+                            }
+                        }
+                    }
+
+                    // Started Life guidance indicator
+                    Surface(
+                        shape = RoundedCornerShape(14.dp),
+                        color = NaturalSecondaryContainer.copy(alpha = 0.7f),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.CheckCircle,
+                                contentDescription = null,
+                                tint = NaturalSuccess,
+                                modifier = Modifier.size(20.dp)
                             )
+                            Column {
+                                Text(
+                                    text = "Started Life Verified (${scanResult.availableSlots.size} slot(s) found)",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        fontWeight = FontWeight.Bold,
+                                        color = NaturalOnBackground
+                                    )
+                                )
+                                Text(
+                                    text = "Choose the character slot above that you are currently playing. Any stats you modify and save below will automatically apply to that specific life in BitLife.",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = NaturalOnSurfaceVariant,
+                                        fontSize = 11.sp,
+                                        lineHeight = 15.sp
+                                    )
+                                )
+                            }
                         }
                     }
                 }
-            } else if (scanResult.error.isNotEmpty()) {
-                Text(
-                    text = scanResult.error,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = NaturalDanger,
-                        fontSize = 12.sp
-                    )
-                )
+            } else {
+                // No save found explanation
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = NaturalDangerContainer.copy(alpha = 0.5f),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(
+                        modifier = Modifier.padding(14.dp),
+                        verticalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.HourglassEmpty,
+                                contentDescription = null,
+                                tint = NaturalDanger,
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Text(
+                                text = "No Started Life Detected Yet",
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = NaturalDanger
+                                )
+                            )
+                        }
+                        Text(
+                            text = "To start modding, simply launch BitLife, tap 'Start a New Life', make at least 1 choice (or age up once so BitLife generates savedLife.data), then switch back here and tap 'Rescan'.",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = NaturalOnBackground,
+                                fontSize = 12.sp,
+                                lineHeight = 16.sp
+                            )
+                        )
+                    }
+                }
             }
         }
     }

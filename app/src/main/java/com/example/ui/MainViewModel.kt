@@ -33,6 +33,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     val bitLifeScanResult = bitLifeManager.scanResult
     val bitLifeStats = bitLifeManager.currentStats
     val bitLifeSelectedSlot = bitLifeManager.selectedSlot
+    val selectedGame = bitLifeManager.selectedGame
     val isOverlayActive = MosesModRepository.isOverlayActive
     val isHudExpanded = MosesModRepository.isHudExpanded
 
@@ -122,6 +123,11 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
             _isBusy.value = false
         }
+    }
+
+    fun selectGame(game: com.example.bitlife.SupportedGame) {
+        bitLifeManager.selectGame(game)
+        scanBitLife()
     }
 
     fun selectBitLifeSlot(slot: BitLifeSlotInfo) {
