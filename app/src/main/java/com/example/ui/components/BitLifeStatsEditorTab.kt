@@ -1304,7 +1304,7 @@ private fun BitLifeHeaderCard(
 
             HorizontalDivider(color = NaturalOutlineVariant.copy(alpha = 0.5f))
 
-            // 2. HERO: 100% AUTOMATIC SAVE FINDER & AUTO-LOAD
+            // 2. HERO: 100% AUTOMATIC INJECTOR & INSTANT UNLOCK
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1337,7 +1337,7 @@ private fun BitLifeHeaderCard(
                         }
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "⚡ AUTOMATIC SAVE FINDER",
+                                text = "⚡ AUTOMATIC 1-TAP INJECTOR",
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.ExtraBold,
                                     color = NaturalPrimary,
@@ -1345,7 +1345,7 @@ private fun BitLifeHeaderCard(
                                 )
                             )
                             Text(
-                                text = "Auto-finds, extracts, and loads your save file without opening ZArchiver or browsing folders.",
+                                text = "Instantly writes God Mode, all DLCs & max stats directly into BitLife's directory.",
                                 style = MaterialTheme.typography.bodySmall.copy(
                                     color = NaturalOnBackground.copy(alpha = 0.85f),
                                     lineHeight = 16.sp
@@ -1354,13 +1354,13 @@ private fun BitLifeHeaderCard(
                         }
                     }
 
-                    // Main 1-Tap Auto-Find Button
+                    // Main 1-Tap Auto-Inject Button
                     Button(
-                        onClick = onAutoFind,
+                        onClick = onAutoInjectGodLife,
                         modifier = Modifier
                             .fillMaxWidth()
                             .height(52.dp)
-                            .testTag("auto_find_bitlife_button"),
+                            .testTag("auto_inject_god_life_button"),
                         shape = RoundedCornerShape(16.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = NaturalPrimary,
@@ -1369,13 +1369,13 @@ private fun BitLifeHeaderCard(
                         enabled = !isBusy
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Bolt,
+                            imageVector = Icons.Default.AutoAwesome,
                             contentDescription = null,
                             modifier = Modifier.size(20.dp)
                         )
                         Spacer(modifier = Modifier.width(8.dp))
                         Text(
-                            text = if (isBusy) "SCANNING STORAGE..." else "⚡ AUTO-FIND & LOAD BITLIFE SAVE",
+                            text = if (isBusy) "INJECTING INTO BITLIFE..." else "⚡ INJECT & UNLOCK ALL INTO BITLIFE",
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 letterSpacing = 0.5.sp
@@ -1480,8 +1480,8 @@ private fun BitLifeHeaderCard(
                                     OutlinedButton(
                                         onClick = onLaunchBitLife,
                                         modifier = Modifier
-                                            .weight(1f)
-                                            .height(40.dp)
+                                            .fillMaxWidth()
+                                            .height(42.dp)
                                             .testTag("launch_bitlife_app_button"),
                                         shape = RoundedCornerShape(12.dp),
                                         border = androidx.compose.foundation.BorderStroke(1.dp, NaturalPrimary)
@@ -1494,7 +1494,7 @@ private fun BitLifeHeaderCard(
                                         )
                                         Spacer(modifier = Modifier.width(6.dp))
                                         Text(
-                                            "Launch BitLife",
+                                            "🚀 Launch BitLife App",
                                             fontWeight = FontWeight.Bold,
                                             fontSize = 12.sp,
                                             color = NaturalPrimary
@@ -1504,56 +1504,29 @@ private fun BitLifeHeaderCard(
                             }
                         }
                     } else {
-                        // Instant Life Injector if no save exists yet
-                        Surface(
-                            shape = RoundedCornerShape(14.dp),
-                            color = NaturalSecondaryContainer,
-                            modifier = Modifier.fillMaxWidth()
+                        // Quick Launch BitLife button
+                        OutlinedButton(
+                            onClick = onLaunchBitLife,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(42.dp)
+                                .testTag("launch_bitlife_app_button"),
+                            shape = RoundedCornerShape(12.dp),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, NaturalPrimary)
                         ) {
-                            Column(
-                                modifier = Modifier.padding(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Text(
-                                    text = "Haven't created a character yet in BitLife?",
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = FontWeight.Bold,
-                                        color = NaturalOnBackground
-                                    )
-                                )
-                                Text(
-                                    text = "1-tap generates and injects a maxed God Life ($10B cash, 100% stats, all DLCs) straight into the game files automatically!",
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        color = NaturalOnSurfaceVariant,
-                                        fontSize = 11.sp
-                                    )
-                                )
-                                Button(
-                                    onClick = onAutoInjectGodLife,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .height(44.dp)
-                                        .testTag("auto_inject_god_life_button"),
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = NaturalPrimary,
-                                        contentColor = NaturalOnPrimary
-                                    ),
-                                    enabled = !isBusy
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.AutoAwesome,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(18.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        "✨ Auto-Create & Inject God Life ($10B + All DLCs)",
-                                        fontWeight = FontWeight.Bold,
-                                        fontSize = 12.sp
-                                    )
-                                }
-                            }
+                            Icon(
+                                imageVector = Icons.Default.OpenInNew,
+                                contentDescription = null,
+                                modifier = Modifier.size(16.dp),
+                                tint = NaturalPrimary
+                            )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text(
+                                "🚀 Launch BitLife App",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 12.sp,
+                                color = NaturalPrimary
+                            )
                         }
                     }
                 }

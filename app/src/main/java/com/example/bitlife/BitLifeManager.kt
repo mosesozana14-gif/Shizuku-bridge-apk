@@ -34,11 +34,18 @@ class BitLifeManager(
         const val BITLIFE_PACKAGE = "com.candywriter.bitlife"
         val ALL_BITLIFE_PACKAGES = listOf(
             "com.candywriter.bitlife",
+            "com.goodgamestudios.bitlife.go.life.simulation",
+            "com.goodgamestudios.bitlife.de.deutsch.life.simulation",
+            "com.goodgamestudios.bitlife.es.espanol.simulador.de.vida",
+            "com.goodgamestudios.bitlife.br.portugues.simulacao.de.vida",
+            "com.goodgamestudios.bitlife.fr.francais.simulation.de.vie",
             "com.candywriter.bitlifebr",
             "com.candywriter.bitlifede",
             "com.candywriter.bitlifees",
             "com.candywriter.bitlifefr",
-            "com.candywriter.bitlifeit"
+            "com.candywriter.bitlifeit",
+            "com.candywriter.doglife",
+            "com.candywriter.catlife"
         )
         val SEARCH_PATHS = listOf(
             "/storage/emulated/0/Android/data/$BITLIFE_PACKAGE/files",
@@ -60,36 +67,68 @@ class BitLifeManager(
                 description = "God Mode, infinite cash, 100% stats, social media & in-game cheats"
             ),
             SupportedGame(
-                id = "bitlife_br",
-                name = "BitLife BR / PT",
-                packageName = "com.candywriter.bitlifebr",
+                id = "bitlife_go",
+                name = "BitLife GO",
+                packageName = "com.goodgamestudios.bitlife.go.life.simulation",
                 iconName = "bitlife",
                 isAvailable = true,
-                description = "BitLife Brazilian / Portuguese Edition"
+                description = "BitLife GO Edition (GoodGame Studios)"
             ),
             SupportedGame(
-                id = "bitlife_es",
-                name = "BitLife Español",
-                packageName = "com.candywriter.bitlifees",
-                iconName = "bitlife",
-                isAvailable = true,
-                description = "BitLife Spanish Edition"
-            ),
-            SupportedGame(
-                id = "bitlife_de",
-                name = "BitLife DE",
-                packageName = "com.candywriter.bitlifede",
+                id = "bitlife_de_gg",
+                name = "BitLife DE (GoodGame)",
+                packageName = "com.goodgamestudios.bitlife.de.deutsch.life.simulation",
                 iconName = "bitlife",
                 isAvailable = true,
                 description = "BitLife German Edition"
             ),
             SupportedGame(
-                id = "bitlife_fr",
-                name = "BitLife FR",
-                packageName = "com.candywriter.bitlifefr",
+                id = "bitlife_es_gg",
+                name = "BitLife ES (GoodGame)",
+                packageName = "com.goodgamestudios.bitlife.es.espanol.simulador.de.vida",
+                iconName = "bitlife",
+                isAvailable = true,
+                description = "BitLife Spanish Edition"
+            ),
+            SupportedGame(
+                id = "bitlife_br_gg",
+                name = "BitLife BR (GoodGame)",
+                packageName = "com.goodgamestudios.bitlife.br.portugues.simulacao.de.vida",
+                iconName = "bitlife",
+                isAvailable = true,
+                description = "BitLife Brazilian / Portuguese Edition"
+            ),
+            SupportedGame(
+                id = "bitlife_fr_gg",
+                name = "BitLife FR (GoodGame)",
+                packageName = "com.goodgamestudios.bitlife.fr.francais.simulation.de.vie",
                 iconName = "bitlife",
                 isAvailable = true,
                 description = "BitLife French Edition"
+            ),
+            SupportedGame(
+                id = "bitlife_br",
+                name = "BitLife BR / PT (Candywriter)",
+                packageName = "com.candywriter.bitlifebr",
+                iconName = "bitlife",
+                isAvailable = true,
+                description = "BitLife Brazilian Edition"
+            ),
+            SupportedGame(
+                id = "doglife",
+                name = "DogLife",
+                packageName = "com.candywriter.doglife",
+                iconName = "doglife",
+                isAvailable = true,
+                description = "DogLife Pet Life Simulator"
+            ),
+            SupportedGame(
+                id = "catlife",
+                name = "CatLife",
+                packageName = "com.candywriter.catlife",
+                iconName = "catlife",
+                isAvailable = true,
+                description = "CatLife Pet Life Simulator"
             )
         )
     }
@@ -150,10 +189,20 @@ class BitLifeManager(
                 "/storage/emulated/0/Android/data/$targetPkg/files"
             }
 
-            // Create directories via Shizuku
+            // 1. Create base directories & protected LiveDictionary
             shizukuManager.executePrivilegedCommand("mkdir", "-p", targetBaseDir)
+            shizukuManager.executePrivilegedCommand("mkdir", "-p", "$targetBaseDir/LiveDictionary")
+            shizukuManager.executePrivilegedCommand("chmod", "770", "$targetBaseDir/LiveDictionary")
+            shizukuManager.executePrivilegedCommand("mkdir", "-p", "$targetBaseDir/sg1")
 
-            // Generate initial max stats save file
+            // 2. Generate and write authentic Apollo MonetizationVars
+            val godBytes = BitLifeSavePatcher.generateGodModeMonetizationVars()
+            val base64God = Base64.encodeToString(godBytes, Base64.NO_WRAP)
+            val monPath = "$targetBaseDir/MonetizationVars"
+            val writeMon = shizukuManager.executePrivilegedCommand("sh", "-c", "echo '$base64God' | base64 -d > '$monPath'")
+            shizukuManager.executePrivilegedCommand("chmod", "660", monPath)
+
+            // 3. Generate max stats save file ($10 Billion, 100% stats, 18 yo)
             val initialStats = BitLifeStats(
                 happiness = 100,
                 health = 100,
@@ -172,31 +221,37 @@ class BitLifeManager(
             )
             val saveBytes = BitLifeSavePatcher.patchStats(ByteArray(0), initialStats)
             val base64Save = Base64.encodeToString(saveBytes, Base64.NO_WRAP)
-            val savePath = "$targetBaseDir/savedLife.data"
+            
+            // Write to both root savedLife.data and sg1/savedLife.data
+            val rootSavePath = "$targetBaseDir/savedLife.data"
+            val sg1SavePath = "$targetBaseDir/sg1/savedLife.data"
+            shizukuManager.executePrivilegedCommand("sh", "-c", "echo '$base64Save' | base64 -d > '$rootSavePath'")
+            shizukuManager.executePrivilegedCommand("chmod", "660", rootSavePath)
+            shizukuManager.executePrivilegedCommand("sh", "-c", "echo '$base64Save' | base64 -d > '$sg1SavePath'")
+            shizukuManager.executePrivilegedCommand("chmod", "660", sg1SavePath)
 
-            val writeSave = shizukuManager.executePrivilegedCommand("sh", "-c", "echo '$base64Save' | base64 -d > '$savePath'")
-            shizukuManager.executePrivilegedCommand("chmod", "660", savePath)
+            // Also patch existing selected slot if present
+            val selected = _selectedSlot.value
+            if (selected != null && selected.filePath.isNotBlank()) {
+                val writeExisting = shizukuManager.executePrivilegedCommand("sh", "-c", "echo '$base64Save' | base64 -d > '${selected.filePath}'")
+                shizukuManager.executePrivilegedCommand("chmod", "660", selected.filePath)
+            }
 
-            // Also write MonetizationVars for God Mode & all expansions
-            val godBytes = BitLifeSavePatcher.generateGodModeMonetizationVars()
-            val base64God = Base64.encodeToString(godBytes, Base64.NO_WRAP)
-            val monPath = "$targetBaseDir/MonetizationVars"
-            val writeMon = shizukuManager.executePrivilegedCommand("sh", "-c", "echo '$base64God' | base64 -d > '$monPath'")
-            shizukuManager.executePrivilegedCommand("chmod", "660", monPath)
             shizukuManager.executePrivilegedCommand("sync")
 
-            // Re-scan device to discover injected life
+            // Re-scan and auto-load the newly injected life into the editor
+            _currentStats.value = initialStats
             scanBitLifeFiles()
 
             _isBusy.value = false
-            if (writeSave.isSuccess || writeMon.isSuccess) {
-                Pair(true, "Auto-Injected brand new God Mode life ($10 Billion, 100% stats, all DLCs) into BitLife!")
+            if (writeMon.isSuccess) {
+                Pair(true, "⚡ Automatically Injected God Mode ($10B Cash, 100% Stats, All DLCs & Expansions) directly into BitLife!")
             } else {
-                Pair(false, "Could not auto-inject: ${writeSave.error.ifEmpty { writeSave.output }}")
+                Pair(false, "Could not write to BitLife directory: ${writeMon.error.ifEmpty { writeMon.output }}")
             }
         } catch (e: Exception) {
             _isBusy.value = false
-            Pair(false, "Error auto-injecting life: ${e.localizedMessage ?: e.message}")
+            Pair(false, "Error auto-injecting into BitLife: ${e.localizedMessage ?: e.message}")
         }
     }
 
@@ -733,11 +788,16 @@ class BitLifeManager(
         val cmd = "echo '$base64Str' | base64 -d > '$targetPath'"
         val res = shizukuManager.executePrivilegedCommand(cmd)
         shizukuManager.executePrivilegedCommand("chmod", "660", targetPath)
+        
+        // Prepare LiveDictionary folder to protect MonetizationVars from being overwritten/reset by BitLife
+        shizukuManager.executePrivilegedCommand("mkdir", "-p", "$baseDir/LiveDictionary")
+        shizukuManager.executePrivilegedCommand("chmod", "770", "$baseDir/LiveDictionary")
+        
         shizukuManager.executePrivilegedCommand("sync")
 
         _isBusy.value = false
         if (res.isSuccess) {
-            Pair(true, "God Mode, Bitizenship & All Expansion Packs unlocked successfully!")
+            Pair(true, "God Mode, Bitizenship & All Expansion Packs unlocked successfully! (LiveDictionary protected)")
         } else {
             Pair(false, "Failed to write MonetizationVars: ${res.error.ifEmpty { res.output }}")
         }

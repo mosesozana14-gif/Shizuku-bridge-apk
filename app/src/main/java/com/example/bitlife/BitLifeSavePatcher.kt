@@ -378,12 +378,155 @@ object BitLifeSavePatcher {
     /**
      * Generates a fully unlocked MonetizationVars payload unlocking EVERY expansion, pack, perk and item in BitLife history.
      */
+    // --- Authentic BitLife MonetizationCodec XOR Cipher & Serialization ---
+    private const val DEFAULT_CIPHER_KEY: String = "com.wtfapps.apollo16"
+    private const val B64_NET_BOOLEAN_TRUE_STANDARD: String =
+        "AAEAAAD/////AQAAAAAAAAAEAQAAAA5TeXN0ZW0uQm9vbGVhbgEAAAAHbV92YWx1ZQABAQs="
+    private const val B64_NET_BOOLEAN_TRUE_VARIANT: String =
+        "AAEAAAD/////AQAAAAAAAAAEAQAAAA5TeXN0ZW0uQm9vbGVhbgEAAAAHbV92YWx1ZQABAAs="
+    private const val B64_NET_BOOLEAN_FALSE_STANDARD: String =
+        "AAEAAAD/////AQAAAAAAAAAEAQAAAA5TeXN0ZW0uQm9vbGVhbgEAAAAHbV92YWx1ZQABAAw="
+
+    private val obfuscationCharMap: Map<Char, Char> = mapOf(
+        'a' to 'z', 'b' to 'm', 'c' to 'y', 'd' to 'l', 'e' to 'x',
+        'f' to 'k', 'g' to 'w', 'h' to 'j', 'i' to 'v', 'j' to 'i',
+        'k' to 'u', 'l' to 'h', 'm' to 't', 'n' to 'g', 'o' to 's',
+        'p' to 'f', 'q' to 'r', 'r' to 'e', 's' to 'q', 't' to 'd',
+        'u' to 'p', 'v' to 'c', 'w' to 'o', 'x' to 'b', 'y' to 'n', 'z' to 'a'
+    )
+
+    private fun getObfuscatedKey(key: String): String =
+        buildString(key.length) {
+            key.lowercase().forEach { char ->
+                append(obfuscationCharMap[char] ?: char)
+            }
+        }
+
+    private fun xorAndBase64Encode(text: String, key: String): String {
+        if (text.isEmpty()) return ""
+        val textBytes = text.toByteArray(StandardCharsets.UTF_8)
+        val keyBytes = key.toByteArray(StandardCharsets.UTF_8)
+        val xoredBytes = ByteArray(textBytes.size) { index ->
+            (textBytes[index].toInt() xor keyBytes[index % keyBytes.size].toInt()).toByte()
+        }
+        return android.util.Base64.encodeToString(xoredBytes, android.util.Base64.NO_WRAP)
+    }
+
+    private fun base64DecodeAndXor(encoded: String, key: String): String {
+        if (encoded.isEmpty()) return ""
+        val decodedBytes = android.util.Base64.decode(encoded, android.util.Base64.DEFAULT)
+        val keyBytes = key.toByteArray(StandardCharsets.UTF_8)
+        val xoredBytes = ByteArray(decodedBytes.size) { index ->
+            (decodedBytes[index].toInt() xor keyBytes[index % keyBytes.size].toInt()).toByte()
+        }
+        return String(xoredBytes, StandardCharsets.UTF_8)
+    }
+
     /**
-     * Generates MonetizationVars payload with ALL God Mode, Bitizenship, and DLC flags.
-     * Generates a clean JSON structure and dual fallback key-values compatible with modern BitLife.
+     * Decrypts MonetizationVars file contents using BitLife cipher.
+     */
+    fun decryptMonetizationVars(content: String): Map<String, Boolean> {
+        if (content.isBlank()) return emptyMap()
+        val obfuscatedKey = getObfuscatedKey(DEFAULT_CIPHER_KEY)
+        val result = mutableMapOf<String, Boolean>()
+        content.lineSequence().map { it.trim() }.filter { it.isNotEmpty() }.forEach { line ->
+            val colonIndex = line.indexOf(':')
+            if (colonIndex != -1) {
+                val encryptedKey = line.substring(0, colonIndex).trim()
+                val encryptedVal = line.substring(colonIndex + 1).trim()
+                if (encryptedKey.isNotEmpty() && encryptedVal.isNotEmpty()) {
+                    val decryptedKey = base64DecodeAndXor(encryptedKey, obfuscatedKey)
+                    val decryptedVal = base64DecodeAndXor(encryptedVal, obfuscatedKey)
+                    val isTrue = decryptedVal == B64_NET_BOOLEAN_TRUE_STANDARD ||
+                            decryptedVal == B64_NET_BOOLEAN_TRUE_VARIANT ||
+                            decryptedVal.equals("true", ignoreCase = true)
+                    result[decryptedKey] = isTrue
+                }
+            }
+        }
+        return result
+    }
+
+    /**
+     * Encrypts a key-value map into authentic BitLife MonetizationVars format.
+     */
+    fun encryptMonetizationVars(data: Map<String, Boolean>): ByteArray {
+        val obfuscatedKey = getObfuscatedKey(DEFAULT_CIPHER_KEY)
+        val lines = data.entries.map { (key, value) ->
+            val encKey = xorAndBase64Encode(key, obfuscatedKey)
+            val valB64 = if (value) B64_NET_BOOLEAN_TRUE_STANDARD else B64_NET_BOOLEAN_FALSE_STANDARD
+            val encVal = xorAndBase64Encode(valB64, obfuscatedKey)
+            "$encKey:$encVal"
+        }
+        return lines.joinToString("\n").toByteArray(StandardCharsets.UTF_8)
+    }
+
+    /**
+     * Generates MonetizationVars payload with ALL God Mode, Bitizenship, Boss Mode, and DLC flags
+     * encrypted with the authentic BitLife Apollo cipher.
      */
     fun generateGodModeMonetizationVars(): ByteArray {
-        val keys = listOf(
+        val allMonetizationKeys = listOf(
+            // Memberships & God Mode
+            "UserBoughtLegacyBitizenship",
+            "UserBoughtNewBitizenship",
+            "UserGivenBitizenship",
+            "UserBoughtGodMode",
+            "UserGivenGodMode",
+            "UserBoughtBitizenshipAndGodModeTogether",
+            "UserBoughtChallengeVault",
+            "UserGivenChallengeVault",
+            "UserBoughtBossMode",
+            "UserGivenBossMode",
+            "UserBoughtAllExpansions",
+            "UserBoughtExpansionPass",
+            "UserBoughtNoAds",
+            "UserBoughtSuperStarMode",
+            "UserBoughtInfiniteGenerations",
+            
+            // Career / Job Packs
+            "UserBoughtActorJobPack",
+            "UserBoughtMusicianJobPack",
+            "UserBoughtAthleteJobPack",
+            "UserBoughtMafiaJobPack",
+            "UserBoughtStreetHustlerJobPack",
+            "UserBoughtBusinessJobPack",
+            "UserBoughtModelJobPack",
+            "UserBoughtSecretAgentJobPack",
+            "UserBoughtDealerJobPack",
+            "UserBoughtVampireJobPack",
+            "UserBoughtCultJobPack",
+            "UserBoughtAstronautJobPack",
+            
+            // Expansions
+            "UserBoughtZooExpansion",
+            "UserBoughtMuseumExpansion",
+            "UserBoughtSecretAgentExpansion",
+            "UserBoughtBlackMarketExpansion",
+            "UserBoughtLandlordExpansion",
+            "UserBoughtCultExpansion",
+            "UserBoughtDispensaryExpansion",
+            "UserBoughtWeedDispensaryExpansion",
+            
+            // Items & Power-Ups
+            "UserBoughtHollywoodStar",
+            "UserBoughtGoldenPassport",
+            "UserBoughtGoldenPacifier",
+            "UserBoughtGoldenDice",
+            "UserBoughtGoldenDiploma",
+            "UserBoughtGoldenResume",
+            "UserBoughtGoldenWrench",
+            "UserBoughtTimeMachine",
+            "UserBoughtUnlimitedTimeMachine",
+            "UserBoughtBrassKnuckles",
+            "UserBoughtAssassinBlade",
+            "UserBoughtAssassinsBlade",
+            "UserBoughtPromiscuityPotion",
+            "UserBoughtGetOutOfJailFree",
+            "UserBoughtCelebrityDatingApp",
+            "UserBoughtHolyGrailItem",
+            
+            // Legacy / Universal aliases
             "Bitizen",
             "Bitizenship",
             "GodMode",
@@ -394,48 +537,17 @@ object BitLifeSavePatcher {
             "SuperstarVIP",
             "NoAds",
             "RemoveAds",
-            "StreakSaver",
-            "CelebrityDatingApp",
             "GoldenPassport",
             "HollywoodStar",
             "AssassinBlade",
-            "AssassinsBlade",
             "BrassKnuckles",
-            "GoldenWrench",
-            "GoldenDiploma",
-            "GoldenResume",
-            "PromisingInstrument",
-            "HolyGrailItem",
-            "LandlordExpansion",
-            "CultExpansion",
-            "BlackMarketExpansion",
-            "ZooExpansion",
-            "SecretAgentExpansion",
-            "SecretAgentJobPack",
-            "ModelJobPack",
-            "DealerJobPack",
-            "WeedDispensaryExpansion",
-            "VampireJobPack",
-            "ActorJobPack",
-            "MusicianJobPack",
-            "AthleteJobPack",
-            "ProAthleteJobPack",
-            "PoliticianJobPack",
-            "BusinessJobPack",
-            "StreetHustlerJobPack",
-            "MafiaJobPack",
-            "AstronautJobPack",
             "AllJobPacksUnlocked",
             "AllExpansionsUnlocked",
-            "AllItemsUnlocked",
-            "GodModeAllNPCs"
+            "AllItemsUnlocked"
         )
 
-        // Generate JSON dictionary format: {"Bitizen":true,"Bitizenship":true,...}
-        val jsonEntries = keys.joinToString(",") { "\"$it\":true" }
-        val jsonPayload = "{$jsonEntries}"
-
-        return jsonPayload.toByteArray(StandardCharsets.UTF_8)
+        val map = allMonetizationKeys.associateWith { true }
+        return encryptMonetizationVars(map)
     }
 
     /**
